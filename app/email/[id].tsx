@@ -35,6 +35,7 @@ const EmailDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [webViewHeight, setWebViewHeight] = useState(200);
   
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -244,9 +245,6 @@ const EmailDetailScreen = () => {
           >
             <IconSymbol name="trash" size={22} color={textColor} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <IconSymbol name="envelope.badge" size={22} color={textColor} />
-          </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setShowFolderModal(true)} 
             style={styles.actionButton}
@@ -318,8 +316,19 @@ const EmailDetailScreen = () => {
                 <NativeWebView
                   originWhitelist={['*']}
                   source={{ html: htmlContent || '' }}
-                  style={styles.webview}
+                  style={{ height: webViewHeight, backgroundColor: 'transparent' }}
                   scrollEnabled={false}
+                  injectedJavaScript={`
+                    setTimeout(function() {
+                      window.ReactNativeWebView.postMessage(document.body.scrollHeight);
+                    }, 500);
+                    true;
+                  `}
+                  onMessage={(event: any) => {
+                    if (event.nativeEvent.data) {
+                      setWebViewHeight(Number(event.nativeEvent.data));
+                    }
+                  }}
                   onShouldStartLoadWithRequest={(request: any) => {
                     if (request.url !== 'about:blank') {
                       Linking.openURL(request.url);
@@ -327,7 +336,6 @@ const EmailDetailScreen = () => {
                     }
                     return true;
                   }}
-                  containerStyle={{ height: 1000 }} // We might need to adjust this dynamically
                 />
               )
             ) : (

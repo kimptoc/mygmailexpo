@@ -27,6 +27,7 @@ const MAPPING = {
   'magnifyingglass': 'search',
   'clock': 'schedule',
   'checkmark': 'check',
+  'checkmark.circle': 'check-circle',
   'tray.fill': 'inbox',
   'exclamationmark.triangle.fill': 'error',
   'xmark': 'close',

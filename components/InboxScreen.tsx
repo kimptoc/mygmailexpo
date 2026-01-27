@@ -43,6 +43,7 @@ export function InboxScreen() {
     clearSelection,
     enterSelectionMode,
     selectionCount,
+    selectAll,
   } = useEmailSelection();
 
   const [emailState, setEmailState] = useState<EmailListState>({
@@ -175,6 +176,11 @@ export function InboxScreen() {
     }
   }, [isSelectionMode, loadEmails, handleMoveToFolder]);
 
+  const handleSelectAll = useCallback(() => {
+    const allIds = emailState.emails.map(e => e.id);
+    selectAll(allIds);
+  }, [emailState.emails, selectAll]); 
+
   const handleArchive = useCallback(async () => {
     const ids = Array.from(selectedIds);
     try {
@@ -196,17 +202,6 @@ export function InboxScreen() {
       console.error('Error deleting emails:', error);
     }
   }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh]);
-
-  const handleMarkAsRead = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    try {
-      await Promise.all(ids.map(id => markAsRead(id)));
-      clearSelection();
-      handleRefresh();
-    } catch (error) {
-      console.error('Error marking as read:', error);
-    }
-  }, [selectedIds, markAsRead, clearSelection, handleRefresh]);
 
   const renderEmail = useCallback(
     ({ item }: { item: Email }) => (
@@ -298,14 +293,14 @@ export function InboxScreen() {
             </Text>
           </View>
           <View style={styles.headerActions}>
+            <TouchableOpacity onPress={handleSelectAll} style={styles.selectionActionButton}>
+              <IconSymbol name="checkmark.circle" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={handleArchive} style={styles.selectionActionButton}>
               <IconSymbol name="archivebox" size={22} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleDelete} style={styles.selectionActionButton}>
               <IconSymbol name="trash" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleMarkAsRead} style={styles.selectionActionButton}>
-              <IconSymbol name="envelope.badge" size={22} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
               <IconSymbol name="folder" size={22} color="#FFFFFF" />
