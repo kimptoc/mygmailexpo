@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { WebView } from 'react-native-webview';
+import NativeWebView from '@/components/NativeWebView';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -260,12 +260,12 @@ const EmailDetailScreen = () => {
                   title="Email Content"
                 />
               ) : (
-                <WebView
+                <NativeWebView
                   originWhitelist={['*']}
                   source={{ html: htmlContent || '' }}
                   style={styles.webview}
                   scrollEnabled={false}
-                  onShouldStartLoadWithRequest={(request) => {
+                  onShouldStartLoadWithRequest={(request: any) => {
                     if (request.url !== 'about:blank') {
                       Linking.openURL(request.url);
                       return false;
