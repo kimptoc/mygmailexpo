@@ -115,10 +115,19 @@ const EmailDetailScreen = () => {
 
   // Check if we should show Remove Label button
   // Show if we are in a custom user label (not INBOX/System/Category)
-  const showRemoveLabel = folderId && 
-    folderId !== 'INBOX' && 
-    !folderId.startsWith('CATEGORY_') && 
-    !['TRASH', 'SENT', 'DRAFTS', 'SPAM', 'STARRED'].includes(folderId);
+  const showRemoveLabel = useMemo(() => {
+    if (!folderId) return false;
+    if (folderId === 'INBOX') return false;
+    if (folderId.startsWith('CATEGORY_')) return false;
+    if (['TRASH', 'SENT', 'DRAFTS', 'SPAM', 'STARRED', 'IMPORTANT', 'UNREAD'].includes(folderId)) return false;
+    return true;
+  }, [folderId]);
+
+  const folderName = useMemo(() => {
+    if (!folderId) return '';
+    if (folderId === 'INBOX') return 'Inbox';
+    return labelsMap[folderId]?.name || ''; // Don't show ID if name not found yet, just empty
+  }, [folderId, labelsMap]);
 
   const formattedDate = useMemo(() => {
     if (!email) return '';
@@ -202,9 +211,12 @@ const EmailDetailScreen = () => {
         currentFolderId={email?.labelIds[0]}
       />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={textColor} />
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color={textColor} />
+          </TouchableOpacity>
+          <ThemedText style={styles.folderBadge} numberOfLines={1}>{folderName}</ThemedText>
+        </View>
         <View style={styles.headerActions}>
           {showRemoveLabel && (
             <TouchableOpacity 
@@ -436,6 +448,17 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  folderBadge: {
+    fontSize: 16,
+    fontWeight: '600',
+    opacity: 0.7,
   },
 });
 

@@ -137,7 +137,7 @@ export function InboxScreen() {
       toggleSelection(email.id);
     } else {
       const folderId = currentFolder?.id || 'INBOX';
-      router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}&folderId=${folderId}`);
+      router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}&folderId=${encodeURIComponent(folderId)}`);
     }
   }, [isSelectionMode, toggleSelection, currentFolder]);
 
