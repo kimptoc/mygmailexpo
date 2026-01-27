@@ -174,12 +174,30 @@ function WebAuthProvider({ children }: AuthProviderProps) {
       const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
         const { accessToken, userEmail } = JSON.parse(stored);
-        // Verify token validity or refresh if needed (omitted for brevity, typically you'd hit an endpoint)
-        setAuthState({
-          status: 'authenticated',
-          userEmail,
-          accessToken,
-        });
+        
+        // Validate token by attempting to fetch user info
+        try {
+          const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+
+          if (res.ok) {
+            setAuthState({
+              status: 'authenticated',
+              userEmail,
+              accessToken,
+            });
+          } else {
+            // Token expired or invalid
+            await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+            setAuthState({ status: 'unauthenticated' });
+          }
+        } catch {
+          // Network error or failed to validate
+          // For safety, clear session if we can't validate
+          await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+          setAuthState({ status: 'unauthenticated' });
+        }
       }
     } catch (error) {
       console.error('Failed to load session', error);

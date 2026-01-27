@@ -28,7 +28,6 @@ export function InboxScreen() {
   const { 
     getEmailsByLabel, 
     getLabels, 
-    markAsRead, 
     removeLabelFromEmails, 
     moveEmailsToLabel 
   } = useGmailApi();
