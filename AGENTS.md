@@ -4,6 +4,7 @@
 
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+
 ## Documentation Resources
 
 When working on this project, **always consult the official Expo documentation** available at:

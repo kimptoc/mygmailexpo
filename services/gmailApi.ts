@@ -1,12 +1,14 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { GmailLabel } from '@/types/folder';
+import { Email, EmailDetail } from '@/types/gmail';
 
-interface Email {
+interface GmailMessageResponse {
   id: string;
   threadId: string;
   labelIds: string[];
   snippet: string;
   payload: {
+    mimeType: string;
     headers: Array<{
       name: string;
       value: string;
@@ -15,13 +17,15 @@ interface Email {
       data?: string;
       size?: number;
     };
+    parts?: any[];
   };
   sizeEstimate: number;
   historyId: string;
+  internalDate: string;
 }
 
 interface ListResponse {
-  messages?: Email[];
+  messages?: Array<{ id: string; threadId: string }>;
   nextPageToken?: string;
   resultSizeEstimate: number;
 }
@@ -50,7 +54,13 @@ export class GmailApiService {
       }
 
       const data = await response.json();
-      return data.labels || [];
+      return data.labels.map((label: any) => ({
+        id: label.id,
+        name: label.name,
+        type: label.type.toLowerCase(),
+        backgroundColor: label.color?.backgroundColor,
+        textColor: label.color?.textColor,
+      })) || [];
     } catch (error) {
       console.error('Error fetching labels:', error);
       throw error;
@@ -62,14 +72,11 @@ export class GmailApiService {
     labelId: string,
     maxResults: number = 20,
     pageToken?: string
-  ): Promise<{ emails: any[]; nextPageToken?: string }> {
+  ): Promise<{ emails: Email[]; nextPageToken?: string }> {
     try {
-      // Special handling for INBOX - use the inbox-specific endpoint
-      let url;
-      if (labelId === 'INBOX') {
-        url = `${this.baseUrl}/messages?labelIds=INBOX&maxResults=${maxResults}`;
-      } else {
-        url = `${this.baseUrl}/messages?labelIds=${encodeURIComponent(labelId)}&maxResults=${maxResults}`;
+      let url = `${this.baseUrl}/messages?maxResults=${maxResults}`;
+      if (labelId !== 'ALL') {
+        url += `&q=label:${encodeURIComponent(labelId)}`;
       }
 
       if (pageToken) {
@@ -88,14 +95,13 @@ export class GmailApiService {
 
       const data: ListResponse = await response.json();
 
-      // If there are messages, fetch their details
       if (data.messages && data.messages.length > 0) {
         const emailDetails = await Promise.all(
-          data.messages.map(message => this.getEmailDetail(accessToken, message.id))
+          data.messages.map(message => this.getEmailMinimal(accessToken, message.id))
         );
 
         return {
-          emails: emailDetails,
+          emails: emailDetails.filter(email => email !== null) as Email[],
           nextPageToken: data.nextPageToken,
         };
       }
@@ -110,7 +116,38 @@ export class GmailApiService {
     }
   }
 
-  async getEmailDetail(accessToken: string, emailId: string): Promise<any> {
+  async getEmailMinimal(accessToken: string, emailId: string): Promise<Email | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/messages/${emailId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) return null;
+
+      const data: GmailMessageResponse = await response.json();
+      const headers = data.payload.headers || [];
+      const subject = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '(No Subject)';
+      const from = headers.find(h => h.name.toLowerCase() === 'from')?.value || '(Unknown)';
+      
+      return {
+        id: data.id,
+        threadId: data.threadId,
+        labelIds: data.labelIds || [],
+        subject,
+        from,
+        snippet: data.snippet || '',
+        receivedDate: parseInt(data.internalDate),
+        isUnread: data.labelIds?.includes('UNREAD') || false,
+      };
+    } catch (error) {
+      console.error(`Error fetching minimal email ${emailId}:`, error);
+      return null;
+    }
+  }
+
+  async getEmailDetail(accessToken: string, emailId: string): Promise<EmailDetail> {
     try {
       const response = await fetch(`${this.baseUrl}/messages/${emailId}?format=full`, {
         headers: {
@@ -122,82 +159,173 @@ export class GmailApiService {
         throw new Error(`Failed to fetch email: ${response.status} ${response.statusText}`);
       }
 
-      const emailData = await response.json();
+      const data: GmailMessageResponse = await response.json();
+      const headers = data.payload.headers || [];
+      
+      const getHeader = (name: string) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
 
-      // Extract relevant information from the email payload
-      const headers = emailData.payload.headers || [];
-      const subjectHeader = headers.find((header: any) => header.name.toLowerCase() === 'subject');
-      const fromHeader = headers.find((header: any) => header.name.toLowerCase() === 'from');
-      const dateHeader = headers.find((header: any) => header.name.toLowerCase() === 'date');
+      const email: EmailDetail = {
+        id: data.id,
+        threadId: data.threadId,
+        labelIds: data.labelIds || [],
+        subject: getHeader('subject') || '(No Subject)',
+        from: getHeader('from'),
+        to: getHeader('to'),
+        cc: getHeader('cc'),
+        bcc: getHeader('bcc'),
+        snippet: data.snippet || '',
+        receivedDate: parseInt(data.internalDate),
+        isUnread: data.labelIds?.includes('UNREAD') || false,
+      };
 
-      // Decode the body if it exists
-      let body = '';
-      if (emailData.payload.parts && emailData.payload.parts.length > 0) {
-        // Look for the text/plain part
-        const textPart = emailData.payload.parts.find((part: any) =>
-          part.mimeType === 'text/plain' && part.body && part.body.data
-        );
-
-        if (textPart) {
-          body = this.decodeBase64(textPart.body.data);
-        } else {
-          // Look for HTML part if plain text is not available
-          const htmlPart = emailData.payload.parts.find((part: any) =>
-            part.mimeType === 'text/html' && part.body && part.body.data
-          );
-
-          if (htmlPart) {
-            body = this.decodeBase64(htmlPart.body.data);
-          } else {
-            // Fallback to looking for any text part
-            const fallbackPart = emailData.payload.parts.find((part: any) =>
-              part.mimeType && part.mimeType.startsWith('text/') && part.body && part.body.data
-            );
-
-            if (fallbackPart) {
-              body = this.decodeBase64(fallbackPart.body.data);
-            }
-          }
-        }
-      } else if (emailData.payload.body && emailData.payload.body.data) {
-        // For emails with a single body part
-        body = this.decodeBase64(emailData.payload.body.data);
+      const parts = this.flattenParts(data.payload);
+      
+      const htmlPart = parts.find(p => p.mimeType === 'text/html');
+      if (htmlPart?.body?.data) {
+        email.htmlBody = this.decodeBase64(htmlPart.body.data);
       }
 
-      return {
-        id: emailData.id,
-        threadId: emailData.threadId,
-        labelIds: emailData.labelIds,
-        subject: subjectHeader ? subjectHeader.value : 'No Subject',
-        from: fromHeader ? fromHeader.value : 'Unknown Sender',
-        date: dateHeader ? dateHeader.value : '',
-        snippet: emailData.snippet || '',
-        body: body,
-        sizeEstimate: emailData.sizeEstimate,
-      };
+      const plainTextPart = parts.find(p => p.mimeType === 'text/plain');
+      if (plainTextPart?.body?.data) {
+        email.plainTextBody = this.decodeBase64(plainTextPart.body.data);
+      }
+
+      // If no parts (simple message)
+      if (!email.htmlBody && !email.plainTextBody && data.payload.body?.data) {
+        const body = this.decodeBase64(data.payload.body.data);
+        if (data.payload.mimeType === 'text/html') {
+          email.htmlBody = body;
+        } else {
+          email.plainTextBody = body;
+        }
+      }
+
+      return email;
     } catch (error) {
       console.error('Error fetching email detail:', error);
       throw error;
     }
   }
 
-  private decodeBase64(base64Str: string): string {
-    // Replace URL-safe base64 chars
-    let base64 = base64Str.replace(/-/g, '+').replace(/_/g, '/');
+  private flattenParts(payload: any): any[] {
+    let parts: any[] = [];
+    if (payload.parts) {
+      for (const part of payload.parts) {
+        parts.push(part);
+        if (part.parts) {
+          parts = parts.concat(this.flattenParts(part));
+        }
+      }
+    }
+    return parts;
+  }
 
-    // Pad with '=' if needed
+  async markAsRead(accessToken: string, emailId: string): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/messages/${emailId}/modify`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          removeLabelIds: ['UNREAD'],
+        }),
+      });
+    } catch (error) {
+      console.error('Error marking email as read:', error);
+      throw error;
+    }
+  }
+
+  async removeLabelFromEmails(accessToken: string, emailIds: string[], labelId: string): Promise<void> {
+    try {
+      await Promise.all(emailIds.map(id => 
+        fetch(`${this.baseUrl}/messages/${id}/modify`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            removeLabelIds: [labelId],
+          }),
+        })
+      ));
+    } catch (error) {
+      console.error('Error removing label from emails:', error);
+      throw error;
+    }
+  }
+
+  async moveEmailsToLabel(
+    accessToken: string,
+    emailIds: string[],
+    targetLabelId: string,
+    currentLabelId: string
+  ): Promise<void> {
+    try {
+      await Promise.all(emailIds.map(id => 
+        fetch(`${this.baseUrl}/messages/${id}/modify`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            addLabelIds: [targetLabelId],
+            removeLabelIds: [currentLabelId],
+          }),
+        })
+      ));
+    } catch (error) {
+      console.error('Error moving emails:', error);
+      throw error;
+    }
+  }
+
+  async trashEmail(accessToken: string, emailId: string): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/messages/${emailId}/trash`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+    } catch (error) {
+      console.error('Error trashing email:', error);
+      throw error;
+    }
+  }
+
+  async archiveEmail(accessToken: string, emailId: string): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/messages/${emailId}/modify`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          removeLabelIds: ['INBOX'],
+        }),
+      });
+    } catch (error) {
+      console.error('Error archiving email:', error);
+      throw error;
+    }
+  }
+
+  private decodeBase64(base64Str: string): string {
+    let base64 = base64Str.replace(/-/g, '+').replace(/_/g, '/');
     const pad = base64.length % 4;
     if (pad) {
-      if (pad === 1) {
-        throw new Error('Invalid base64 string');
-      }
+      if (pad === 1) throw new Error('Invalid base64 string');
       base64 += new Array(5 - pad).join('=');
     }
 
     try {
-      // Decode base64 to bytes
       const raw = atob(base64);
-      // Convert bytes to string
       const bytes = new Uint8Array(raw.length);
       for (let i = 0; i < raw.length; i++) {
         bytes[i] = raw.charCodeAt(i);
@@ -210,47 +338,63 @@ export class GmailApiService {
   }
 }
 
-// Hook to use the Gmail API service
 export const useGmailApi = () => {
   const { getAccessToken } = useAuth();
 
-  const getLabels = async (): Promise<GmailLabel[]> => {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      throw new Error('No access token available');
-    }
+  const ensureToken = () => {
+    const token = getAccessToken();
+    if (!token) throw new Error('No access token available');
+    return token;
+  };
 
-    const apiService = GmailApiService.getInstance();
-    return apiService.getLabels(accessToken);
+  const getLabels = async (): Promise<GmailLabel[]> => {
+    return GmailApiService.getInstance().getLabels(ensureToken());
   };
 
   const getEmailsByLabel = async (
     labelId: string,
     maxResults: number = 20,
     pageToken?: string
-  ): Promise<{ emails: any[]; nextPageToken?: string }> => {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      throw new Error('No access token available');
-    }
-
-    const apiService = GmailApiService.getInstance();
-    return apiService.getEmailsByLabel(accessToken, labelId, maxResults, pageToken);
+  ): Promise<{ emails: Email[]; nextPageToken?: string }> => {
+    return GmailApiService.getInstance().getEmailsByLabel(ensureToken(), labelId, maxResults, pageToken);
   };
 
-  const getEmailDetail = async (emailId: string): Promise<any> => {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      throw new Error('No access token available');
-    }
+  const getEmailDetail = async (emailId: string): Promise<EmailDetail> => {
+    return GmailApiService.getInstance().getEmailDetail(ensureToken(), emailId);
+  };
 
-    const apiService = GmailApiService.getInstance();
-    return apiService.getEmailDetail(accessToken, emailId);
+  const markAsRead = async (emailId: string): Promise<void> => {
+    return GmailApiService.getInstance().markAsRead(ensureToken(), emailId);
+  };
+
+  const removeLabelFromEmails = async (emailIds: string[], labelId: string): Promise<void> => {
+    return GmailApiService.getInstance().removeLabelFromEmails(ensureToken(), emailIds, labelId);
+  };
+
+  const moveEmailsToLabel = async (
+    emailIds: string[],
+    targetLabelId: string,
+    currentLabelId: string
+  ): Promise<void> => {
+    return GmailApiService.getInstance().moveEmailsToLabel(ensureToken(), emailIds, targetLabelId, currentLabelId);
+  };
+
+  const trashEmail = async (emailId: string): Promise<void> => {
+    return GmailApiService.getInstance().trashEmail(ensureToken(), emailId);
+  };
+
+  const archiveEmail = async (emailId: string): Promise<void> => {
+    return GmailApiService.getInstance().archiveEmail(ensureToken(), emailId);
   };
 
   return {
     getLabels,
     getEmailsByLabel,
     getEmailDetail,
+    markAsRead,
+    removeLabelFromEmails,
+    moveEmailsToLabel,
+    trashEmail,
+    archiveEmail,
   };
 };

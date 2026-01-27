@@ -19,12 +19,31 @@ import { EmailItem } from '@/components/EmailItem';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import FolderSelectionModal from '@/components/FolderSelectionModal';
 
+import { useEmailSelection } from '@/hooks/useEmailSelection';
+
+import { EmailItemSkeleton } from '@/components/EmailItemSkeleton';
+
 export function InboxScreen() {
   const { authState, signOut, getAccessToken } = useAuth();
-  const { getEmailsByLabel, getLabels } = useGmailApi();
+  const { 
+    getEmailsByLabel, 
+    getLabels, 
+    markAsRead, 
+    removeLabelFromEmails, 
+    moveEmailsToLabel 
+  } = useGmailApi();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
+
+  const {
+    selectedIds,
+    isSelectionMode,
+    toggleSelection,
+    clearSelection,
+    enterSelectionMode,
+    selectionCount,
+  } = useEmailSelection();
 
   const [emailState, setEmailState] = useState<EmailListState>({
     emails: [],
@@ -36,8 +55,22 @@ export function InboxScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentFolder, setCurrentFolder] = useState<GmailLabel | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [labelsMap, setLabelsMap] = useState<Record<string, GmailLabel>>({});
 
   const userEmail = authState.status === 'authenticated' ? authState.userEmail : '';
+
+  const loadLabels = useCallback(async () => {
+    try {
+      const labels = await getLabels();
+      const map: Record<string, GmailLabel> = {};
+      labels.forEach(label => {
+        map[label.id] = label;
+      });
+      setLabelsMap(map);
+    } catch (error) {
+      console.error('Error loading labels map:', error);
+    }
+  }, [getLabels]);
 
   const loadEmails = useCallback(async (folderId?: string, refresh = false) => {
     const accessToken = getAccessToken();
@@ -50,9 +83,7 @@ export function InboxScreen() {
     }
 
     try {
-      // If no folder is selected, default to INBOX
       const targetFolderId = folderId || 'INBOX';
-      
       const result = await getEmailsByLabel(targetFolderId, 20);
 
       setEmailState({
@@ -74,37 +105,121 @@ export function InboxScreen() {
   }, [getAccessToken, getEmailsByLabel]);
 
   const loadMoreEmails = useCallback(async () => {
-    // Pagination implementation would go here
-    // For now, we'll just reload the current folder
-    const folderId = currentFolder?.id || 'INBOX';
-    loadEmails(folderId);
-  }, [currentFolder, loadEmails]);
+    if (isLoadingMore || !emailState.nextPageToken) return;
+
+    const accessToken = getAccessToken();
+    if (!accessToken) return;
+
+    setIsLoadingMore(true);
+    try {
+      const folderId = currentFolder?.id || 'INBOX';
+      const result = await getEmailsByLabel(folderId, 20, emailState.nextPageToken);
+
+      setEmailState((prev) => ({
+        ...prev,
+        emails: [...prev.emails, ...result.emails],
+        nextPageToken: result.nextPageToken,
+      }));
+    } catch (error) {
+      console.error('Error loading more emails:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [getAccessToken, getEmailsByLabel, currentFolder, emailState.nextPageToken, isLoadingMore]);
 
   useEffect(() => {
-    // Load the default INBOX folder
+    loadLabels();
     loadEmails('INBOX');
-  }, [loadEmails]);
+  }, [loadLabels, loadEmails]);
 
   const handleEmailPress = useCallback((email: Email) => {
-    // Navigate to email detail screen
-    router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}`);
-  }, []);
+    if (isSelectionMode) {
+      toggleSelection(email.id);
+    } else {
+      router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}`);
+    }
+  }, [isSelectionMode, toggleSelection]);
+
+  const handleEmailLongPress = useCallback((email: Email) => {
+    if (!isSelectionMode) {
+      enterSelectionMode(email.id);
+    }
+  }, [isSelectionMode, enterSelectionMode]);
 
   const handleRefresh = useCallback(() => {
     const folderId = currentFolder?.id || 'INBOX';
     loadEmails(folderId, true);
-  }, [currentFolder, loadEmails]);
+    loadLabels();
+  }, [currentFolder, loadEmails, loadLabels]);
 
   const handleSelectFolder = useCallback((folder: GmailLabel) => {
-    setCurrentFolder(folder);
-    loadEmails(folder.id);
-  }, [loadEmails]);
+    if (isSelectionMode) {
+      // Move selected emails to this folder
+      handleMoveToFolder(folder.id);
+      setShowFolderModal(false);
+    } else {
+      setCurrentFolder(folder);
+      loadEmails(folder.id);
+    }
+  }, [isSelectionMode, loadEmails, handleMoveToFolder]);
+
+  const handleArchive = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    try {
+      await removeLabelFromEmails(ids, 'INBOX');
+      clearSelection();
+      handleRefresh();
+    } catch (error) {
+      console.error('Error archiving emails:', error);
+    }
+  }, [selectedIds, removeLabelFromEmails, clearSelection, handleRefresh]);
+
+  const handleDelete = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    try {
+      await moveEmailsToLabel(ids, 'TRASH', currentFolder?.id || 'INBOX');
+      clearSelection();
+      handleRefresh();
+    } catch (error) {
+      console.error('Error deleting emails:', error);
+    }
+  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh]);
+
+  const handleMarkAsRead = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    try {
+      await Promise.all(ids.map(id => markAsRead(id)));
+      clearSelection();
+      handleRefresh();
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  }, [selectedIds, markAsRead, clearSelection, handleRefresh]);
+
+  const handleMoveToFolder = useCallback(async (targetLabelId: string) => {
+    const ids = Array.from(selectedIds);
+    try {
+      await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX');
+      clearSelection();
+      handleRefresh();
+    } catch (error) {
+      console.error('Error moving emails:', error);
+    }
+  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh]);
 
   const renderEmail = useCallback(
     ({ item }: { item: Email }) => (
-      <EmailItem email={item} onPress={() => handleEmailPress(item)} />
+      <EmailItem 
+        email={item} 
+        onPress={() => handleEmailPress(item)} 
+        onLongPress={() => handleEmailLongPress(item)}
+        isSelected={selectedIds.has(item.id)}
+        isSelectionMode={isSelectionMode}
+        labels={labelsMap}
+        currentFolderId={currentFolder?.id || 'INBOX'}
+      />
     ),
-    [handleEmailPress]
+    [handleEmailPress, handleEmailLongPress, selectedIds, isSelectionMode, labelsMap, currentFolder]
   );
 
   const renderFooter = useCallback(() => {
@@ -141,31 +256,28 @@ export function InboxScreen() {
 
   if (emailState.isLoading && emailState.emails.length === 0) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor }]}>
-        <ActivityIndicator size="large" color={tintColor} />
-        <Text style={[styles.loadingText, { color: textColor }]}>Loading emails...</Text>
-      </View>
-    );
-  }
-
-  if (emailState.error && emailState.emails.length === 0) {
-    return (
-      <View style={[styles.container, styles.centered, { backgroundColor }]}>
-        <IconSymbol name="exclamationmark.triangle.fill" size={48} color="#E53935" />
-        <Text style={[styles.errorText, { color: textColor }]}>{emailState.error}</Text>
-        <Pressable
-          style={[styles.retryButton, { backgroundColor: tintColor }]}
-          onPress={() => loadEmails(currentFolder?.id || 'INBOX')}
-        >
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </Pressable>
+      <View style={[styles.container, { backgroundColor }]}>
+        <View style={[styles.header, { borderBottomColor: textColor + '20' }]}>
+          <View style={styles.headerLeft}>
+            <View style={styles.folderSelector}>
+              <IconSymbol name="folder" size={20} color={tintColor} />
+              <Text style={[styles.headerTitle, { color: textColor }]}>
+                {currentFolder ? currentFolder.name : 'Inbox'}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <FlatList
+          data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+          renderItem={() => <EmailItemSkeleton />}
+          keyExtractor={(item) => item.toString()}
+        />
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Folder Selection Modal - Rendered at the top level to avoid conditional hooks */}
       <FolderSelectionModal
         visible={showFolderModal}
         onClose={() => setShowFolderModal(false)}
@@ -174,28 +286,55 @@ export function InboxScreen() {
       />
 
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: textColor + '20' }]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => setShowFolderModal(true)}>
-            <View style={styles.folderSelector}>
-              <IconSymbol name="folder" size={20} color={tintColor} />
-              <Text style={[styles.headerTitle, { color: textColor }]}>
-                {currentFolder ? currentFolder.name : 'Inbox'}
-              </Text>
-              <IconSymbol name="chevron.down" size={16} color={textColor + '80'} />
-            </View>
-          </TouchableOpacity>
-          <Text style={[styles.headerSubtitle, { color: textColor + '80' }]}>
-            {userEmail}
-          </Text>
+      {isSelectionMode ? (
+        <View style={[styles.header, styles.selectionHeader, { backgroundColor: tintColor }]}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity onPress={clearSelection} style={styles.selectionActionButton}>
+              <IconSymbol name="xmark" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: '#FFFFFF', fontSize: 20 }]}>
+              {selectionCount}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={handleArchive} style={styles.selectionActionButton}>
+              <IconSymbol name="archivebox" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDelete} style={styles.selectionActionButton}>
+              <IconSymbol name="trash" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleMarkAsRead} style={styles.selectionActionButton}>
+              <IconSymbol name="envelope.badge" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
+              <IconSymbol name="folder" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
-        <Pressable
-          style={[styles.signOutButton, { borderColor: tintColor }]}
-          onPress={signOut}
-        >
-          <Text style={[styles.signOutText, { color: tintColor }]}>Sign Out</Text>
-        </Pressable>
-      </View>
+      ) : (
+        <View style={[styles.header, { borderBottomColor: textColor + '20' }]}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity onPress={() => setShowFolderModal(true)}>
+              <View style={styles.folderSelector}>
+                <IconSymbol name="folder" size={20} color={tintColor} />
+                <Text style={[styles.headerTitle, { color: textColor }]}>
+                  {currentFolder ? currentFolder.name : 'Inbox'}
+                </Text>
+                <IconSymbol name="chevron.down" size={16} color={textColor + '80'} />
+              </View>
+            </TouchableOpacity>
+            <Text style={[styles.headerSubtitle, { color: textColor + '80' }]}>
+              {userEmail}
+            </Text>
+          </View>
+          <Pressable
+            style={[styles.signOutButton, { borderColor: tintColor }]}
+            onPress={signOut}
+          >
+            <Text style={[styles.signOutText, { color: tintColor }]}>Sign Out</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Email List */}
       <FlatList
@@ -237,8 +376,15 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  selectionHeader: {
+    alignItems: 'center',
+    paddingTop: 54,
+    paddingBottom: 12,
+  },
   headerLeft: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   folderSelector: {
     flexDirection: 'row',
@@ -255,6 +401,13 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 13,
     marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  selectionActionButton: {
+    padding: 10,
   },
   signOutButton: {
     paddingHorizontal: 12,

@@ -1,40 +1,69 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Linking,
+  Platform,
+  Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { WebView } from 'react-native-webview';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useGmailApi } from '@/services/gmailApi';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { EmailDetail, getFromName } from '@/types/gmail';
+import { LabelChip } from '@/components/LabelChip';
+import FolderSelectionModal from '@/components/FolderSelectionModal';
 
 const EmailDetailScreen = () => {
-  const { id, subject } = useLocalSearchParams<{ id: string; subject: string }>();
-  const { getEmailDetail } = useGmailApi();
-  const [email, setEmail] = useState<any>(null);
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { 
+    getEmailDetail, 
+    markAsRead, 
+    getLabels, 
+    archiveEmail, 
+    trashEmail,
+    moveEmailsToLabel 
+  } = useGmailApi();
+  const [email, setEmail] = useState<EmailDetail | null>(null);
+  const [labelsMap, setLabelsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
+  const tintColor = useThemeColor({}, 'tint');
 
   useEffect(() => {
     if (id) {
-      loadEmailDetail();
+      loadData();
     }
   }, [id]);
 
-  const loadEmailDetail = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const emailDetail = await getEmailDetail(id);
-      setEmail(emailDetail);
+      const [detail, labels] = await Promise.all([
+        getEmailDetail(id),
+        getLabels()
+      ]);
+
+      const map: Record<string, any> = {};
+      labels.forEach(l => map[l.id] = l);
+      setLabelsMap(map);
+      setEmail(detail);
+
+      // Mark as read if it's unread
+      if (detail.isUnread) {
+        await markAsRead(id);
+      }
     } catch (err: any) {
       console.error('Error loading email:', err);
       setError(err.message || 'Failed to load email');
@@ -43,15 +72,90 @@ const EmailDetailScreen = () => {
     }
   };
 
-  const handleOpenUrl = (url: string) => {
-    Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
+  const handleArchive = async () => {
+    try {
+      await archiveEmail(id);
+      router.back();
+    } catch (err) {
+      console.error('Error archiving:', err);
+    }
   };
+
+  const handleDelete = async () => {
+    try {
+      await trashEmail(id);
+      router.back();
+    } catch (err) {
+      console.error('Error deleting:', err);
+    }
+  };
+
+  const handleMoveToFolder = async (folder: any) => {
+    try {
+      // Find current primary label (usually INBOX or the one we navigated from)
+      const currentLabelId = email?.labelIds.includes('INBOX') ? 'INBOX' : email?.labelIds[0] || 'INBOX';
+      await moveEmailsToLabel([id], folder.id, currentLabelId);
+      setShowFolderModal(false);
+      router.back();
+    } catch (err) {
+      console.error('Error moving:', err);
+    }
+  };
+
+  const formattedDate = useMemo(() => {
+    if (!email) return '';
+    const date = new Date(email.receivedDate);
+    return date.toLocaleString([], {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }, [email]);
+
+  const htmlContent = useMemo(() => {
+    if (!email?.htmlBody) return null;
+
+    // Basic responsive wrapper for HTML content
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              font-size: 16px;
+              line-height: 1.5;
+              color: ${textColor};
+              background-color: transparent;
+              margin: 0;
+              padding: 0;
+              word-wrap: break-word;
+            }
+            img {
+              max-width: 100%;
+              height: auto;
+            }
+            a {
+              color: ${tintColor};
+            }
+          </style>
+        </head>
+        <body>
+          ${email.htmlBody}
+        </body>
+      </html>
+    `;
+  }, [email, textColor, tintColor]);
 
   if (loading) {
     return (
       <ThemedView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
-        <IconSymbol name="arrow.clockwise" size={24} color={useThemeColor({}, 'tint')} />
-        <ThemedText>Loading email...</ThemedText>
+        <IconSymbol name="arrow.clockwise" size={32} color={tintColor} />
+        <ThemedText style={{ marginTop: 16 }}>Loading email...</ThemedText>
       </ThemedView>
     );
   }
@@ -62,8 +166,8 @@ const EmailDetailScreen = () => {
         <IconSymbol name="exclamationmark.triangle" size={48} color="#f44336" />
         <ThemedText style={styles.errorText}>{error}</ThemedText>
         <TouchableOpacity
-          style={styles.retryButton}
-          onPress={loadEmailDetail}
+          style={[styles.retryButton, { backgroundColor: tintColor }]}
+          onPress={loadData}
         >
           <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
         </TouchableOpacity>
@@ -73,30 +177,108 @@ const EmailDetailScreen = () => {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
-      <ThemedView style={styles.header}>
+      <FolderSelectionModal
+        visible={showFolderModal}
+        onClose={() => setShowFolderModal(false)}
+        onSelectFolder={handleMoveToFolder}
+        currentFolderId={email?.labelIds[0]}
+      />
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={useThemeColor({}, 'text')} />
+          <IconSymbol name="chevron.left" size={24} color={textColor} />
         </TouchableOpacity>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Email Detail
-        </ThemedText>
-        <View style={styles.placeholder} /> {/* Placeholder for alignment */}
-      </ThemedView>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={handleArchive} style={styles.actionButton}>
+            <IconSymbol name="archivebox" size={22} color={textColor} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
+            <IconSymbol name="trash" size={22} color={textColor} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}>
+            <IconSymbol name="envelope.badge" size={22} color={textColor} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.actionButton}>
+            <IconSymbol name="folder" size={22} color={textColor} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {email && (
-        <ScrollView style={styles.emailContainer}>
-          <ThemedView style={[styles.emailCard, { backgroundColor: useThemeColor({}, 'background') }]}>
-            <ThemedText style={styles.subject}>{email.subject}</ThemedText>
+        <ScrollView style={styles.content}>
+          <View style={styles.emailHeader}>
+            <ThemedText type="title" style={styles.subject}>{email.subject}</ThemedText>
             
-            <View style={styles.metadata}>
-              <ThemedText style={styles.from}>From: {email.from}</ThemedText>
-              <ThemedText style={styles.date}>{email.date}</ThemedText>
+            {/* Labels */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.labelsContainer}>
+              {email.labelIds
+                .filter(id => !['UNREAD', 'INBOX'].includes(id) && !id.startsWith('CATEGORY_'))
+                .map(id => {
+                  const label = labelsMap[id];
+                  if (!label) return null;
+                  return (
+                    <LabelChip
+                      key={id}
+                      name={label.name}
+                      backgroundColor={label.backgroundColor}
+                      textColor={label.textColor}
+                    />
+                  );
+                })}
+            </ScrollView>
+
+            <View style={styles.senderRow}>
+              <View style={[styles.avatar, { backgroundColor: tintColor + '20' }]}>
+                <ThemedText style={[styles.avatarText, { color: tintColor }]}>
+                  {getFromName(email.from).charAt(0).toUpperCase()}
+                </ThemedText>
+              </View>
+              <View style={styles.senderInfo}>
+                <View style={styles.nameRow}>
+                  <ThemedText style={styles.fromName}>{getFromName(email.from)}</ThemedText>
+                  <ThemedText style={styles.dateText}>{formattedDate}</ThemedText>
+                </View>
+                <ThemedText style={styles.fromEmail}>{email.from}</ThemedText>
+                <ThemedText style={styles.toText}>to {email.to}</ThemedText>
+                {email.cc && <ThemedText style={styles.toText}>cc {email.cc}</ThemedText>}
+              </View>
             </View>
-            
-            <View style={styles.divider} />
-            
-            <ThemedText style={styles.body}>{email.body}</ThemedText>
-          </ThemedView>
+          </View>
+          
+          <View style={styles.divider} />
+          
+          <View style={styles.bodyContainer}>
+            {email.htmlBody ? (
+              Platform.OS === 'web' ? (
+                <iframe
+                  srcDoc={htmlContent || ''}
+                  style={{
+                    width: '100%',
+                    height: '600px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                  }}
+                  title="Email Content"
+                />
+              ) : (
+                <WebView
+                  originWhitelist={['*']}
+                  source={{ html: htmlContent || '' }}
+                  style={styles.webview}
+                  scrollEnabled={false}
+                  onShouldStartLoadWithRequest={(request) => {
+                    if (request.url !== 'about:blank') {
+                      Linking.openURL(request.url);
+                      return false;
+                    }
+                    return true;
+                  }}
+                  containerStyle={{ height: 1000 }} // We might need to adjust this dynamically
+                />
+              )
+            ) : (
+              <ThemedText style={styles.bodyText}>{email.plainTextBody || email.snippet}</ThemedText>
+            )}
+          </View>
         </ScrollView>
       )}
     </ThemedView>
@@ -110,66 +292,102 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    paddingTop: 50,
+    paddingBottom: 8,
+    paddingHorizontal: 8,
   },
   backButton: {
     padding: 8,
-    marginRight: 8,
   },
-  headerTitle: {
+  headerActions: {
+    flexDirection: 'row',
+  },
+  actionButton: {
+    padding: 12,
+  },
+  content: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
   },
-  placeholder: {
-    width: 40, // Same width as backButton for alignment
-  },
-  emailContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  emailCard: {
-    borderRadius: 8,
+  emailHeader: {
     padding: 16,
   },
   subject: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 22,
     marginBottom: 12,
+    lineHeight: 28,
   },
-  metadata: {
+  labelsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 16,
   },
-  from: {
-    fontSize: 14,
+  senderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  senderInfo: {
     flex: 1,
   },
-  date: {
-    fontSize: 14,
-    color: '#888',
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  fromName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  fromEmail: {
+    fontSize: 13,
+    opacity: 0.7,
+  },
+  dateText: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  toText: {
+    fontSize: 13,
+    opacity: 0.7,
+    marginTop: 2,
   },
   divider: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: '#e0e0e0',
-    marginVertical: 12,
+    marginHorizontal: 16,
   },
-  body: {
+  bodyContainer: {
+    padding: 16,
+    minHeight: 400,
+  },
+  bodyText: {
     fontSize: 16,
     lineHeight: 24,
+  },
+  webview: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   errorText: {
     fontSize: 16,
     textAlign: 'center',
     marginVertical: 16,
+    paddingHorizontal: 32,
   },
   retryButton: {
-    backgroundColor: '#1e88e5',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {

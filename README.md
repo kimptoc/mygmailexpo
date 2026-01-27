@@ -1,5 +1,11 @@
 # Welcome to your Expo app 👋
 
+Its a simple gmail client that lists my emails in my inbox
+Support google authentication and then show emails in the inbox.
+You can change folder (labels).  You can move one or emails to different labels or remove the label.
+It remembers most recently viewed and moved labels, putting them at the top of the list.
+
+
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started
