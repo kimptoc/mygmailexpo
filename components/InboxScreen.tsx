@@ -152,6 +152,17 @@ export function InboxScreen() {
     loadLabels();
   }, [currentFolder, loadEmails, loadLabels]);
 
+  const handleMoveToFolder = useCallback(async (targetLabelId: string) => {
+    const ids = Array.from(selectedIds);
+    try {
+      await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX');
+      clearSelection();
+      handleRefresh();
+    } catch (error) {
+      console.error('Error moving emails:', error);
+    }
+  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh]);
+
   const handleSelectFolder = useCallback((folder: GmailLabel) => {
     if (isSelectionMode) {
       // Move selected emails to this folder
@@ -195,17 +206,6 @@ export function InboxScreen() {
       console.error('Error marking as read:', error);
     }
   }, [selectedIds, markAsRead, clearSelection, handleRefresh]);
-
-  const handleMoveToFolder = useCallback(async (targetLabelId: string) => {
-    const ids = Array.from(selectedIds);
-    try {
-      await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX');
-      clearSelection();
-      handleRefresh();
-    } catch (error) {
-      console.error('Error moving emails:', error);
-    }
-  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh]);
 
   const renderEmail = useCallback(
     ({ item }: { item: Email }) => (
