@@ -12,6 +12,7 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useToast } from '@/contexts/ToastContext';
 import { useGmailApi } from '@/services/gmailApi';
 import { GmailLabel } from '@/types/folder';
 import { Email, EmailListState } from '@/types/gmail';
@@ -30,6 +31,7 @@ export function InboxScreen() {
     getLabels, 
     moveEmailsToLabel 
   } = useGmailApi();
+  const { showToast } = useToast();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
@@ -163,12 +165,14 @@ export function InboxScreen() {
     const ids = Array.from(selectedIds);
     try {
       await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX');
+      showToast('Emails moved', 'success');
       clearSelection();
       handleRefresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error moving emails:', error);
+      showToast(error.message || 'Failed to move emails', 'error');
     }
-  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh]);
+  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast]);
 
   const handleSelectFolder = useCallback((folder: GmailLabel) => {
     if (isSelectionMode) {

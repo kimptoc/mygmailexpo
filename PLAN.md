@@ -2,7 +2,7 @@
 
 This document outlines the work needed to achieve feature parity between the Expo/React Native app and the native Android app.
 
-**Last Updated:** After commit `8751b91` (fix: add missing icon mappings)
+**Last Updated:** After commit `53019f0` (feat: allow selecting emails by clicking sender avatar)
 
 ---
 
@@ -34,110 +34,100 @@ This document outlines the work needed to achieve feature parity between the Exp
 
 ---
 
-### Phase 3: Email Selection & Actions - MOSTLY COMPLETE
+### Phase 3: Email Selection & Actions - COMPLETE
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| 3.1 Multi-Select Mode | ✅ Done | Long press to select, checkmarks |
+| 3.1 Multi-Select Mode | ✅ Done | Long press or avatar click to select |
 | 3.2 Remove Label | ✅ Done | Works in list and detail view |
 | 3.3 Move to Folder | ✅ Done | Folder selection modal |
 | 3.4 Mark as Read | ✅ Done | Automatic when viewing email |
-| 3.5 Archive | 🗑️ To Remove | Simplify UI - remove button |
-| 3.6 Delete/Trash | 🗑️ To Remove | Simplify UI - remove button |
-| 3.7 Mark as Unread | 🗑️ To Remove | Button has no handler - remove |
-| 3.8 Select All | ❌ Missing | Android has this in selection mode |
+| 3.5 Archive | ✅ Removed | Simplified UI per plan |
+| 3.6 Delete/Trash | ✅ Removed | Simplified UI per plan |
+| 3.7 Mark as Unread | ✅ Removed | Simplified UI per plan |
+| 3.8 Select All | ✅ Done | Added in selection mode header |
 
 **Files:** `components/InboxScreen.tsx`, `hooks/useEmailSelection.ts`, `services/gmailApi.ts`
 
 ---
 
-### Phase 4: Polish & UX - PARTIAL
+### Phase 4: Polish & UX - MOSTLY COMPLETE
 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | 4.1 Pull to Refresh | ✅ Done | RefreshControl implemented |
 | 4.2 Skeleton Loaders | ✅ Done | EmailItemSkeleton component |
-| 4.3 Error Handling | ⚠️ Basic | Console errors only, no toasts |
+| 4.3 Error Handling | ✅ Improved | Alert.alert() for user-facing errors |
 | 4.4 Dark Mode | ⚠️ Partial | Theme colors used, WebView may need work |
 
 **Files:** `components/EmailItemSkeleton.tsx`
 
 ---
 
-## Concerns & Issues
+## Recent Commits Summary
 
-### High Priority
-
-1. **Remove Archive, Delete, Mark Unread buttons** *(NEW)*
-   - Mark as Unread button has no handler - remove instead of implementing
-   - Archive and Delete buttons add complexity - remove for simpler UX
-   - **Files:** `app/email/[id].tsx`, `components/InboxScreen.tsx`
-
-2. **WebView height hardcoded**
-   - `containerStyle={{ height: 1000 }}` in email detail
-   - Should dynamically resize based on content
-   - **File:** `app/email/[id].tsx:330`
-
-### Medium Priority
-
-4. **No Select All in multi-select mode**
-   - Android app has "Select All" button in selection header
-   - Need to add to `InboxScreen.tsx` header actions
-
-5. **Error handling is basic**
-   - Actions fail silently (console.error only)
-   - Should show toast/alert to user
-   - Consider adding react-native-toast-message or similar
-
-6. **Session persistence**
-   - Recent commits mention session/recent folders issues
-   - Need to verify login persists across app restarts
-
-7. **BCC field not displayed**
-   - Type includes `bcc` but not shown in email detail UI
-   - Minor - BCC is rarely visible to recipients anyway
-
-### Low Priority
-
-8. **Navigation drawer vs modal**
-   - Android uses drawer for folder navigation
-   - Expo uses modal - acceptable but different UX
-
-9. **Smart date missing "Yesterday"**
-   - Android shows "Yesterday" for yesterday's emails
-   - Current implementation jumps from time to "Mon d"
-
-10. **No offline support**
-    - Android app may cache emails
-    - Expo app requires network for all operations
+| Commit | Description | Plan Item |
+|--------|-------------|-----------|
+| `53019f0` | Avatar click to select (web UX) | Enhancement |
+| `557c6fa` | Gmail API scope to gmail.modify | Bug fix |
+| `417d9f8` | Label removal reliability | Bug fix |
+| `8f75aad` | Remove Archive/Delete buttons | ✅ Plan item 1 |
+| `a76b8dc` | Fix Rules of Hooks violations | Bug fix |
+| `ddb6fa1` | Session validation on app load | Bug fix |
+| `1bf7d11` | Select All + WebView height | ✅ Plan items 2 & 3 |
 
 ---
 
-## Remaining Work
+## What's Left To Do
 
-### Must Have (Before Feature Parity)
+### Cleanup (Low Priority)
 
-1. **Remove Archive, Delete, and Mark Unread buttons**
-   - Remove from email detail header (`app/email/[id].tsx`)
-   - Remove from selection mode header (`components/InboxScreen.tsx`)
-   - Remove unused API methods if no longer needed (`services/gmailApi.ts`)
-   - Simplifies UI and removes non-functional Mark Unread button
+1. **Remove dead code: `trashEmail` and `archiveEmail` API methods**
+   - These methods are still in `services/gmailApi.ts` but no longer used
+   - Can be removed to clean up codebase
+   - **File:** `services/gmailApi.ts:299-330, 402-418`
 
-2. **Add Select All to selection mode**
-   - Add button to selection header
-   - Add `selectAll(emailIds: string[])` to `useEmailSelection` hook
+### Nice to Have (Optional)
 
-3. **Fix WebView dynamic height**
-   - Use `onContentSizeChange` or message passing
-   - Or use `useAutoHeight` pattern
+2. **Web iframe height is still hardcoded**
+   - Native WebView uses dynamic height via `injectedJavaScript`
+   - Web iframe still uses `height: '600px'`
+   - **File:** `app/email/[id].tsx:276`
 
-### Nice to Have
+3. **Add "Yesterday" to smart date formatting**
+   - Current: jumps from time (today) to "Mon d" (older)
+   - Could add "Yesterday" for better UX
+   - **File:** `types/gmail.ts` - `getSmartFormattedDate()`
 
-4. **Add toast notifications**
-   - "Email moved to X", etc.
+4. **Toast notifications for actions**
+   - Currently shows Alert on error only
+   - Could add success toasts: "Email moved to X"
 
-5. **Add "Yesterday" to smart date**
-   - Update `getSmartFormattedDate()` in `types/gmail.ts`
+---
+
+## Concerns With Current Implementation
+
+### Minor Issues
+
+1. **Dead code in gmailApi.ts**
+   - `trashEmail()` and `archiveEmail()` methods are exported but never called
+   - Should be removed or will cause confusion
+
+2. **Inconsistent error handling**
+   - Some errors show `Alert.alert()`, others only `console.error()`
+   - Move to folder in InboxScreen only logs errors (line 169)
+
+3. **Web iframe fixed height**
+   - Long emails may be cut off or require scrolling within iframe
+   - Native uses dynamic height, web doesn't
+
+### Non-Issues (Working as Expected)
+
+- ✅ Session persistence now validates on load
+- ✅ Gmail API scope updated to allow modifications
+- ✅ Label removal works reliably with auto-refresh
+- ✅ Selection mode works via long press AND avatar click (web-friendly)
+- ✅ WebView height is now dynamic on native platforms
 
 ---
 
@@ -145,46 +135,47 @@ This document outlines the work needed to achieve feature parity between the Exp
 
 | Method | Status | Notes |
 |--------|--------|-------|
-| `getLabels` | ✅ Done | |
-| `getEmailsByLabel` | ✅ Done | With pagination |
-| `getEmailDetail` | ✅ Done | Full format with HTML |
-| `markAsRead` | ✅ Done | Remove UNREAD label |
-| `markAsUnread` | ~~❌ Missing~~ | Not needed - removing button |
-| `removeLabelFromEmails` | ✅ Done | Batch operation |
-| `moveEmailsToLabel` | ✅ Done | Add + remove labels |
-| `trashEmail` | 🗑️ May Remove | If delete button removed |
-| `archiveEmail` | 🗑️ May Remove | If archive button removed |
-
----
-
-## Files Changed Since Initial Plan
-
-- `app/email/[id].tsx` - Email detail with actions
-- `app/(tabs)/index.tsx` - Main tab updated
-- `components/InboxScreen.tsx` - Multi-select, actions
-- `components/EmailItem.tsx` - Avatar, labels, selection
-- `components/EmailItemSkeleton.tsx` - NEW: Loading skeleton
-- `components/LabelChip.tsx` - NEW: Label display
-- `components/NativeWebView.tsx` - NEW: WebView wrapper
-- `components/ui/icon-symbol.tsx` - Added new icons
-- `hooks/useEmailSelection.ts` - NEW: Selection state
-- `services/gmailApi.ts` - All new API methods
-- `types/gmail.ts` - Full type definitions
+| `getLabels` | ✅ Used | |
+| `getEmailsByLabel` | ✅ Used | With pagination |
+| `getEmailDetail` | ✅ Used | Full format with HTML |
+| `markAsRead` | ✅ Used | Auto on view |
+| `removeLabelFromEmails` | ✅ Used | Batch operation |
+| `moveEmailsToLabel` | ✅ Used | Add + remove labels |
+| `trashEmail` | ⚠️ Dead Code | Remove - no longer used |
+| `archiveEmail` | ⚠️ Dead Code | Remove - no longer used |
 
 ---
 
 ## Testing Checklist
 
-- [ ] Sign in works on all platforms (Android, iOS, Web)
-- [ ] Email list loads and displays correctly
-- [ ] Pagination works (Load More)
-- [ ] Pull to refresh works
-- [ ] Long press enters selection mode
-- [ ] Multi-select actions work (archive, delete, move)
-- [ ] Email detail loads HTML emails
-- [ ] Email detail shows To/CC
-- [ ] Mark as read works automatically
-- [ ] Remove label works
-- [ ] Move to folder works
-- [ ] Dark mode looks correct
-- [ ] Skeleton loaders display during load
+- [x] Sign in works on all platforms (Android, iOS, Web)
+- [x] Email list loads and displays correctly
+- [x] Pagination works (Load More)
+- [x] Pull to refresh works
+- [x] Long press enters selection mode
+- [x] Avatar click enters selection mode (web-friendly)
+- [x] Select All works in selection mode
+- [x] Move to folder works (selection + detail view)
+- [x] Remove label works (selection + detail view)
+- [x] Email detail loads HTML emails
+- [x] Email detail shows To/CC
+- [x] Mark as read works automatically
+- [x] WebView height is dynamic (native)
+- [ ] Dark mode looks correct (needs verification)
+- [x] Skeleton loaders display during load
+- [x] Session persists across app restarts
+
+---
+
+## Conclusion
+
+**Feature parity is essentially complete.** The main planned work items have been implemented:
+
+1. ✅ Archive/Delete/Mark Unread buttons removed
+2. ✅ Select All added
+3. ✅ WebView dynamic height (native)
+
+**Remaining work is cleanup and polish:**
+- Remove dead code (`trashEmail`, `archiveEmail`)
+- Fix web iframe height (optional)
+- Add "Yesterday" date format (optional)

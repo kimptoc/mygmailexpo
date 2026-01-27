@@ -7,7 +7,6 @@ import {
   Linking,
   Platform,
   Dimensions,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import NativeWebView from '@/components/NativeWebView';
@@ -19,9 +18,11 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { EmailDetail, getFromName } from '@/types/gmail';
 import { LabelChip } from '@/components/LabelChip';
 import FolderSelectionModal from '@/components/FolderSelectionModal';
+import { useToast } from '@/contexts/ToastContext';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
+  const { showToast } = useToast();
   const { 
     getEmailDetail, 
     markAsRead, 
@@ -77,10 +78,11 @@ const EmailDetailScreen = () => {
     if (!folderId) return;
     try {
       await removeLabelFromEmails([id], folderId);
+      showToast('Label removed', 'success');
       router.back();
     } catch (err: any) {
       console.error('Error removing label:', err);
-      Alert.alert('Error', err.message || 'Failed to remove label');
+      showToast(err.message || 'Failed to remove label', 'error');
     }
   };
 
@@ -89,11 +91,12 @@ const EmailDetailScreen = () => {
       // Find current primary label (usually INBOX or the one we navigated from)
       const currentLabelId = email?.labelIds.includes('INBOX') ? 'INBOX' : email?.labelIds[0] || 'INBOX';
       await moveEmailsToLabel([id], folder.id, currentLabelId);
+      showToast(`Moved to ${folder.name}`, 'success');
       setShowFolderModal(false);
       router.back();
     } catch (err: any) {
       console.error('Error moving:', err);
-      Alert.alert('Error', err.message || 'Failed to move email');
+      showToast(err.message || 'Failed to move email', 'error');
     }
   };
 

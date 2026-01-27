@@ -2,11 +2,12 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { Stack } from 'expo-router';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ToastProvider } from '@/contexts/ToastContext';
 import { LoginScreen } from '@/components/LoginScreen';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -48,10 +49,12 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AppContent />
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <ToastProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <AppContent />
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }
