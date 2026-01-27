@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -30,7 +29,7 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   onSelectFolder,
   currentFolderId,
 }) => {
-  const { folders, recentFolders, loading, error, loadFolders } = useFolders();
+  const { folders, recentFolders, loading, error, loadFolders, addToRecentFolders } = useFolders();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredFolders, setFilteredFolders] = useState<GmailLabel[]>([]);
   const backgroundColor = useThemeColor({}, 'background');
@@ -60,6 +59,7 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   }, [folders, searchQuery]);
 
   const handleSelectFolder = (folder: GmailLabel) => {
+    addToRecentFolders(folder);
     onSelectFolder(folder);
     onClose();
   };

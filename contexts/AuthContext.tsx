@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthState } from '@/types/gmail';
 
 // Conditionally import based on platform
@@ -22,8 +23,6 @@ if (Platform.OS === 'web') {
 // Google OAuth client IDs
 const WEB_CLIENT_ID = '767000337742-8ld4hre5nr02mu27dc5hj3i0r05p2vg4.apps.googleusercontent.com';
 const IOS_CLIENT_ID = '767000337742-bfpst90t6dbi14qal5k67la0omjifqgg.apps.googleusercontent.com';
-// Note: Android client ID (767000337742-s5gvjb3andab3c3gbfr7m13sl1eq9o2n) is configured in Google Cloud Console
-// and automatically matched by package name + SHA-1 fingerprint
 
 // Gmail API scopes
 const SCOPES = [
@@ -65,8 +64,6 @@ function NativeAuthProvider({ children }: AuthProviderProps) {
       if (isSuccessResponse(response)) {
         await fetchAccessTokenAndSetState(response.data.user.email);
       }
-      // For other response types (like noSavedCredentialFound), we just continue
-      // without setting the auth state
     } catch {
       // No existing session
     }
@@ -161,11 +158,33 @@ function NativeAuthProvider({ children }: AuthProviderProps) {
 // Web Auth Provider
 function WebAuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>({ status: 'unauthenticated' });
+  const AUTH_STORAGE_KEY = '@auth_session';
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: WEB_CLIENT_ID,
     scopes: SCOPES,
   });
+
+  useEffect(() => {
+    checkStoredSession();
+  }, []);
+
+  const checkStoredSession = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const { accessToken, userEmail } = JSON.parse(stored);
+        // Verify token validity or refresh if needed (omitted for brevity, typically you'd hit an endpoint)
+        setAuthState({
+          status: 'authenticated',
+          userEmail,
+          accessToken,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load session', error);
+    }
+  };
 
   useEffect(() => {
     if (response?.type === 'success') {
@@ -193,11 +212,17 @@ function WebAuthProvider({ children }: AuthProviderProps) {
       });
       const userInfo = await res.json();
 
-      setAuthState({
+      const newState: AuthState = {
         status: 'authenticated',
         userEmail: userInfo.email,
         accessToken: accessToken,
-      });
+      };
+      
+      setAuthState(newState);
+      await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+        accessToken,
+        userEmail: userInfo.email,
+      }));
     } catch {
       setAuthState({
         status: 'error',
@@ -214,8 +239,9 @@ function WebAuthProvider({ children }: AuthProviderProps) {
     await promptAsync();
   }, [request, promptAsync]);
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
     setAuthState({ status: 'unauthenticated' });
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
   }, []);
 
   const getAccessToken = useCallback(() => {

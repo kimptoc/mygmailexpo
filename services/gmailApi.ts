@@ -76,7 +76,7 @@ export class GmailApiService {
     try {
       let url = `${this.baseUrl}/messages?maxResults=${maxResults}`;
       if (labelId !== 'ALL') {
-        url += `&q=label:${encodeURIComponent(labelId)}`;
+        url += `&labelIds=${encodeURIComponent(labelId)}`;
       }
 
       if (pageToken) {
