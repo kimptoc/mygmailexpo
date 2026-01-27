@@ -296,46 +296,6 @@ export class GmailApiService {
     }
   }
 
-  async trashEmail(accessToken: string, emailId: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/messages/${emailId}/trash`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to trash email: ${response.status} ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error trashing email:', error);
-      throw error;
-    }
-  }
-
-  async archiveEmail(accessToken: string, emailId: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/messages/${emailId}/modify`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          removeLabelIds: ['INBOX'],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to archive email: ${response.status} ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error archiving email:', error);
-      throw error;
-    }
-  }
-
   private decodeBase64(base64Str: string): string {
     let base64 = base64Str.replace(/-/g, '+').replace(/_/g, '/');
     const pad = base64.length % 4;
@@ -399,14 +359,6 @@ export const useGmailApi = () => {
     return GmailApiService.getInstance().moveEmailsToLabel(ensureToken(), emailIds, targetLabelId, currentLabelId);
   };
 
-  const trashEmail = async (emailId: string): Promise<void> => {
-    return GmailApiService.getInstance().trashEmail(ensureToken(), emailId);
-  };
-
-  const archiveEmail = async (emailId: string): Promise<void> => {
-    return GmailApiService.getInstance().archiveEmail(ensureToken(), emailId);
-  };
-
   return {
     getLabels,
     getEmailsByLabel,
@@ -414,7 +366,5 @@ export const useGmailApi = () => {
     markAsRead,
     removeLabelFromEmails,
     moveEmailsToLabel,
-    trashEmail,
-    archiveEmail,
   };
 };
