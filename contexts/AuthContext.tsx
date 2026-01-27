@@ -166,6 +166,14 @@ function WebAuthProvider({ children }: AuthProviderProps) {
   });
 
   useEffect(() => {
+    if (request) {
+      console.log('Auth Request initialized with Redirect URI:', request.redirectUri);
+    } else {
+      console.log('Auth Request is null');
+    }
+  }, [request]);
+
+  useEffect(() => {
     checkStoredSession();
   }, []);
 
@@ -250,11 +258,19 @@ function WebAuthProvider({ children }: AuthProviderProps) {
   };
 
   const signIn = useCallback(async () => {
+    console.log('Sign in pressed');
     if (!request) {
+      console.error('Sign in aborted: Request is null');
       return;
     }
+    console.log('Prompting async auth...');
     setAuthState({ status: 'loading' });
-    await promptAsync();
+    try {
+      await promptAsync();
+    } catch (e) {
+      console.error('Prompt async error:', e);
+      setAuthState({ status: 'unauthenticated' });
+    }
   }, [request, promptAsync]);
 
   const signOut = useCallback(async () => {
