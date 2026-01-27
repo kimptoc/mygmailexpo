@@ -3,6 +3,7 @@
   "license": "0BSD",
   "main": "expo-router/entry",
   "version": "54.0.35",
+  "homepage": "https://kimptoc.github.io/mygmailexpo",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -13,7 +14,7 @@
     "draft": "npx eas-cli@latest workflow:run create-draft.yml",
     "development-builds": "npx eas-cli@latest workflow:run create-development-builds.yml",
     "deploy": "npx eas-cli@latest workflow:run deploy-to-production.yml",
-    "build:web": "expo export --platform web",
+    "build:web": "expo export --platform web --clear",
     "deploy:web": "npm run build:web && gh-pages -d dist"
   },
   "dependencies": {
