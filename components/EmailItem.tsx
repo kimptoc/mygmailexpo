@@ -11,6 +11,7 @@ interface EmailItemProps {
   email: Email;
   onPress: () => void;
   onLongPress?: () => void;
+  onAvatarPress?: () => void;
   isSelected?: boolean;
   isSelectionMode?: boolean;
   labels?: Record<string, GmailLabel>;
@@ -27,6 +28,7 @@ export function EmailItem({
   email, 
   onPress, 
   onLongPress,
+  onAvatarPress,
   isSelected,
   isSelectionMode,
   labels, 
@@ -72,16 +74,24 @@ export function EmailItem({
       onLongPress={onLongPress}
     >
       {/* Avatar or Checkmark */}
-      <View style={[
-        styles.avatar, 
-        { backgroundColor: isSelected ? tintColor : avatarColor }
-      ]}>
+      <Pressable 
+        onPress={(e) => {
+          if (onAvatarPress) {
+            e.stopPropagation();
+            onAvatarPress();
+          }
+        }}
+        style={[
+          styles.avatar, 
+          { backgroundColor: isSelected ? tintColor : avatarColor }
+        ]}
+      >
         {isSelected ? (
           <IconSymbol name="checkmark" size={24} color="#FFFFFF" />
         ) : (
           <Text style={styles.avatarText}>{firstLetter}</Text>
         )}
-      </View>
+      </Pressable>
 
       {/* Email content */}
       <View style={styles.content}>

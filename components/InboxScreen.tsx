@@ -187,13 +187,14 @@ export function InboxScreen() {
         email={item} 
         onPress={() => handleEmailPress(item)} 
         onLongPress={() => handleEmailLongPress(item)}
+        onAvatarPress={() => toggleSelection(item.id)}
         isSelected={selectedIds.has(item.id)}
         isSelectionMode={isSelectionMode}
         labels={labelsMap}
         currentFolderId={currentFolder?.id || 'INBOX'}
       />
     ),
-    [handleEmailPress, handleEmailLongPress, selectedIds, isSelectionMode, labelsMap, currentFolder]
+    [handleEmailPress, handleEmailLongPress, toggleSelection, selectedIds, isSelectionMode, labelsMap, currentFolder]
   );
 
   const renderFooter = useCallback(() => {
