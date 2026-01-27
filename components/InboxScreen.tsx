@@ -136,9 +136,10 @@ export function InboxScreen() {
     if (isSelectionMode) {
       toggleSelection(email.id);
     } else {
-      router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}`);
+      const folderId = currentFolder?.id || 'INBOX';
+      router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}&folderId=${folderId}`);
     }
-  }, [isSelectionMode, toggleSelection]);
+  }, [isSelectionMode, toggleSelection, currentFolder]);
 
   const handleEmailLongPress = useCallback((email: Email) => {
     if (!isSelectionMode) {

@@ -20,14 +20,15 @@ import { LabelChip } from '@/components/LabelChip';
 import FolderSelectionModal from '@/components/FolderSelectionModal';
 
 const EmailDetailScreen = () => {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
   const { 
     getEmailDetail, 
     markAsRead, 
     getLabels, 
     archiveEmail, 
     trashEmail,
-    moveEmailsToLabel 
+    moveEmailsToLabel,
+    removeLabelFromEmails
   } = useGmailApi();
   const [email, setEmail] = useState<EmailDetail | null>(null);
   const [labelsMap, setLabelsMap] = useState<Record<string, any>>({});
@@ -89,6 +90,16 @@ const EmailDetailScreen = () => {
       console.error('Error deleting:', err);
     }
   };
+  
+  const handleRemoveLabel = async () => {
+    if (!folderId) return;
+    try {
+      await removeLabelFromEmails([id], folderId);
+      router.back();
+    } catch (err) {
+      console.error('Error removing label:', err);
+    }
+  };
 
   const handleMoveToFolder = async (folder: any) => {
     try {
@@ -101,6 +112,13 @@ const EmailDetailScreen = () => {
       console.error('Error moving:', err);
     }
   };
+
+  // Check if we should show Remove Label button
+  // Show if we are in a custom user label (not INBOX/System/Category)
+  const showRemoveLabel = folderId && 
+    folderId !== 'INBOX' && 
+    !folderId.startsWith('CATEGORY_') && 
+    !['TRASH', 'SENT', 'DRAFTS', 'SPAM', 'STARRED'].includes(folderId);
 
   const formattedDate = useMemo(() => {
     if (!email) return '';
@@ -188,16 +206,41 @@ const EmailDetailScreen = () => {
           <IconSymbol name="chevron.left" size={24} color={textColor} />
         </TouchableOpacity>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleArchive} style={styles.actionButton}>
+          {showRemoveLabel && (
+            <TouchableOpacity 
+              onPress={handleRemoveLabel} 
+              style={styles.actionButton}
+              accessibilityLabel="Remove label"
+              {...{ title: "Remove label" } as any}
+            >
+              <IconSymbol name="tag.slash" size={22} color={textColor} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            onPress={handleArchive} 
+            style={styles.actionButton}
+            accessibilityLabel="Archive"
+            {...{ title: "Archive" } as any}
+          >
             <IconSymbol name="archivebox" size={22} color={textColor} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
+          <TouchableOpacity 
+            onPress={handleDelete} 
+            style={styles.actionButton}
+            accessibilityLabel="Delete"
+            {...{ title: "Delete" } as any}
+          >
             <IconSymbol name="trash" size={22} color={textColor} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
             <IconSymbol name="envelope.badge" size={22} color={textColor} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.actionButton}>
+          <TouchableOpacity 
+            onPress={() => setShowFolderModal(true)} 
+            style={styles.actionButton}
+            accessibilityLabel="Move to folder"
+            {...{ title: "Move to folder" } as any}
+          >
             <IconSymbol name="folder" size={22} color={textColor} />
           </TouchableOpacity>
         </View>
