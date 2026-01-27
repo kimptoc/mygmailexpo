@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Pressable,
   TouchableOpacity,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useGmailApi } from '@/services/gmailApi';
@@ -126,10 +126,12 @@ export function InboxScreen() {
     }
   }, [getAccessToken, getEmailsByLabel, currentFolder, emailState.nextPageToken, isLoadingMore]);
 
-  useEffect(() => {
-    loadLabels();
-    loadEmails('INBOX');
-  }, [loadLabels, loadEmails]);
+  useFocusEffect(
+    useCallback(() => {
+      loadLabels();
+      loadEmails(currentFolder?.id || 'INBOX');
+    }, [loadLabels, loadEmails, currentFolder])
+  );
 
   const handleEmailPress = useCallback((email: Email) => {
     if (isSelectionMode) {

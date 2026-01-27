@@ -7,6 +7,7 @@ import {
   Linking,
   Platform,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import NativeWebView from '@/components/NativeWebView';
@@ -77,8 +78,9 @@ const EmailDetailScreen = () => {
     try {
       await removeLabelFromEmails([id], folderId);
       router.back();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error removing label:', err);
+      Alert.alert('Error', err.message || 'Failed to remove label');
     }
   };
 
@@ -89,8 +91,9 @@ const EmailDetailScreen = () => {
       await moveEmailsToLabel([id], folder.id, currentLabelId);
       setShowFolderModal(false);
       router.back();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error moving:', err);
+      Alert.alert('Error', err.message || 'Failed to move email');
     }
   };
 

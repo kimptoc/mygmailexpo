@@ -222,7 +222,7 @@ export class GmailApiService {
 
   async markAsRead(accessToken: string, emailId: string): Promise<void> {
     try {
-      await fetch(`${this.baseUrl}/messages/${emailId}/modify`, {
+      const response = await fetch(`${this.baseUrl}/messages/${emailId}/modify`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -232,6 +232,10 @@ export class GmailApiService {
           removeLabelIds: ['UNREAD'],
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to mark as read: ${response.status} ${response.statusText}`);
+      }
     } catch (error) {
       console.error('Error marking email as read:', error);
       throw error;
@@ -240,8 +244,8 @@ export class GmailApiService {
 
   async removeLabelFromEmails(accessToken: string, emailIds: string[], labelId: string): Promise<void> {
     try {
-      await Promise.all(emailIds.map(id => 
-        fetch(`${this.baseUrl}/messages/${id}/modify`, {
+      await Promise.all(emailIds.map(async id => {
+        const response = await fetch(`${this.baseUrl}/messages/${id}/modify`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -250,8 +254,12 @@ export class GmailApiService {
           body: JSON.stringify({
             removeLabelIds: [labelId],
           }),
-        })
-      ));
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to remove label: ${response.status} ${response.statusText}`);
+        }
+      }));
     } catch (error) {
       console.error('Error removing label from emails:', error);
       throw error;
@@ -265,8 +273,8 @@ export class GmailApiService {
     currentLabelId: string
   ): Promise<void> {
     try {
-      await Promise.all(emailIds.map(id => 
-        fetch(`${this.baseUrl}/messages/${id}/modify`, {
+      await Promise.all(emailIds.map(async id => {
+        const response = await fetch(`${this.baseUrl}/messages/${id}/modify`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -276,8 +284,12 @@ export class GmailApiService {
             addLabelIds: [targetLabelId],
             removeLabelIds: [currentLabelId],
           }),
-        })
-      ));
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to move email: ${response.status} ${response.statusText}`);
+        }
+      }));
     } catch (error) {
       console.error('Error moving emails:', error);
       throw error;
@@ -286,12 +298,16 @@ export class GmailApiService {
 
   async trashEmail(accessToken: string, emailId: string): Promise<void> {
     try {
-      await fetch(`${this.baseUrl}/messages/${emailId}/trash`, {
+      const response = await fetch(`${this.baseUrl}/messages/${emailId}/trash`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to trash email: ${response.status} ${response.statusText}`);
+      }
     } catch (error) {
       console.error('Error trashing email:', error);
       throw error;
@@ -300,7 +316,7 @@ export class GmailApiService {
 
   async archiveEmail(accessToken: string, emailId: string): Promise<void> {
     try {
-      await fetch(`${this.baseUrl}/messages/${emailId}/modify`, {
+      const response = await fetch(`${this.baseUrl}/messages/${emailId}/modify`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -310,6 +326,10 @@ export class GmailApiService {
           removeLabelIds: ['INBOX'],
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to archive email: ${response.status} ${response.statusText}`);
+      }
     } catch (error) {
       console.error('Error archiving email:', error);
       throw error;
