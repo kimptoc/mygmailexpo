@@ -30,6 +30,12 @@ const MAPPING = {
   'tray.fill': 'inbox',
   'exclamationmark.triangle.fill': 'error',
   'xmark': 'close',
+  'tag.slash': 'label-off',
+  'archivebox': 'archive',
+  'trash': 'delete',
+  'envelope.badge': 'mark-email-unread',
+  'arrow.clockwise': 'refresh',
+  'exclamationmark.triangle': 'warning',
 } as IconMapping;
 
 /**

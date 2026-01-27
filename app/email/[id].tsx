@@ -215,12 +215,7 @@ const EmailDetailScreen = () => {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <IconSymbol name="chevron.left" size={24} color={textColor} />
           </TouchableOpacity>
-          <View>
-            <ThemedText style={styles.folderBadge} numberOfLines={1}>{folderName}</ThemedText>
-            <ThemedText style={{ fontSize: 10, color: 'red' }}>
-              {folderId} | {showRemoveLabel ? 'SHOW' : 'HIDE'}
-            </ThemedText>
-          </View>
+          <ThemedText style={styles.folderBadge} numberOfLines={1}>{folderName}</ThemedText>
         </View>
         <View style={styles.headerActions}>
           {showRemoveLabel && (
