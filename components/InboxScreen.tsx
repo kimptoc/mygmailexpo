@@ -29,7 +29,8 @@ export function InboxScreen() {
   const { 
     getEmailsByLabel, 
     getLabels, 
-    moveEmailsToLabel 
+    moveEmailsToLabel,
+    removeLabelFromEmails
   } = useGmailApi();
   const { showToast } = useToast();
   const backgroundColor = useThemeColor({}, 'background');
@@ -161,6 +162,20 @@ export function InboxScreen() {
     selectAll(allIds);
   }, [emailState.emails, selectAll]);
 
+  const handleRemoveLabelBatch = useCallback(async () => {
+    if (!currentFolder) return;
+    const ids = Array.from(selectedIds);
+    try {
+      await removeLabelFromEmails(ids, currentFolder.id);
+      showToast('Label removed', 'success');
+      clearSelection();
+      handleRefresh();
+    } catch (error: any) {
+      console.error('Error removing labels:', error);
+      showToast(error.message || 'Failed to remove labels', 'error');
+    }
+  }, [selectedIds, currentFolder, removeLabelFromEmails, clearSelection, handleRefresh, showToast]);
+
   const handleMoveToFolder = useCallback(async (targetLabelId: string) => {
     const ids = Array.from(selectedIds);
     try {
@@ -184,6 +199,11 @@ export function InboxScreen() {
       loadEmails(folder.id);
     }
   }, [isSelectionMode, loadEmails, handleMoveToFolder]);
+
+  const showRemoveLabel = !!currentFolder && 
+    currentFolder.id !== 'INBOX' && 
+    !currentFolder.id.startsWith('CATEGORY_') && 
+    !['TRASH', 'SENT', 'DRAFTS', 'SPAM', 'STARRED', 'IMPORTANT', 'UNREAD'].includes(currentFolder.id);
 
   const renderEmail = useCallback(
     ({ item }: { item: Email }) => (
@@ -279,6 +299,11 @@ export function InboxScreen() {
             <TouchableOpacity onPress={handleSelectAll} style={styles.selectionActionButton}>
               <IconSymbol name="checkmark.circle" size={22} color={backgroundColor} />
             </TouchableOpacity>
+            {showRemoveLabel && (
+              <TouchableOpacity onPress={handleRemoveLabelBatch} style={styles.selectionActionButton}>
+                <IconSymbol name="tag.slash" size={22} color={backgroundColor} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
               <IconSymbol name="folder" size={22} color={backgroundColor} />
             </TouchableOpacity>
