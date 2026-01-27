@@ -44,3 +44,6 @@ app-example
 
 # expo-auth-session temp files
 .temp_AuthSession.js
+
+# web build output
+/dist

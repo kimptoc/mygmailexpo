@@ -12,7 +12,9 @@
     "lint": "expo lint",
     "draft": "npx eas-cli@latest workflow:run create-draft.yml",
     "development-builds": "npx eas-cli@latest workflow:run create-development-builds.yml",
-    "deploy": "npx eas-cli@latest workflow:run deploy-to-production.yml"
+    "deploy": "npx eas-cli@latest workflow:run deploy-to-production.yml",
+    "build:web": "expo export --platform web",
+    "deploy:web": "npm run build:web && gh-pages -d dist"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -51,6 +53,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "gh-pages": "^6.3.0",
     "typescript": "~5.9.2"
   }
 }
