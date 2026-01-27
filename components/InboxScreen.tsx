@@ -165,9 +165,10 @@ export function InboxScreen() {
   const handleRemoveLabelBatch = useCallback(async () => {
     if (!currentFolder) return;
     const ids = Array.from(selectedIds);
+    const count = ids.length;
     try {
       await removeLabelFromEmails(ids, currentFolder.id);
-      showToast('Label removed', 'success');
+      showToast(`${count} email${count !== 1 ? 's' : ''} removed`, 'success');
       clearSelection();
       handleRefresh();
     } catch (error: any) {
@@ -178,9 +179,10 @@ export function InboxScreen() {
 
   const handleMoveToFolder = useCallback(async (targetLabelId: string) => {
     const ids = Array.from(selectedIds);
+    const count = ids.length;
     try {
       await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX');
-      showToast('Emails moved', 'success');
+      showToast(`${count} email${count !== 1 ? 's' : ''} moved`, 'success');
       clearSelection();
       handleRefresh();
     } catch (error: any) {

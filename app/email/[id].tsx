@@ -78,7 +78,7 @@ const EmailDetailScreen = () => {
     if (!folderId) return;
     try {
       await removeLabelFromEmails([id], folderId);
-      showToast('Label removed', 'success');
+      showToast('1 email removed', 'success');
       router.back();
     } catch (err: any) {
       console.error('Error removing label:', err);
@@ -91,7 +91,7 @@ const EmailDetailScreen = () => {
       // Find current primary label (usually INBOX or the one we navigated from)
       const currentLabelId = email?.labelIds.includes('INBOX') ? 'INBOX' : email?.labelIds[0] || 'INBOX';
       await moveEmailsToLabel([id], folder.id, currentLabelId);
-      showToast(`Moved to ${folder.name}`, 'success');
+      showToast('1 email moved', 'success');
       setShowFolderModal(false);
       router.back();
     } catch (err: any) {
