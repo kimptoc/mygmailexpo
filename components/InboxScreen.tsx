@@ -55,6 +55,7 @@ export function InboxScreen() {
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [currentFolder, setCurrentFolder] = useState<GmailLabel | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [labelsMap, setLabelsMap] = useState<Record<string, GmailLabel>>({});
@@ -164,6 +165,7 @@ export function InboxScreen() {
 
   const handleRemoveLabelBatch = useCallback(async () => {
     if (!currentFolder) return;
+    setActionLoading(true);
     const ids = Array.from(selectedIds);
     const count = ids.length;
     try {
@@ -174,10 +176,13 @@ export function InboxScreen() {
     } catch (error: any) {
       console.error('Error removing labels:', error);
       showToast(error.message || 'Failed to remove labels', 'error');
+    } finally {
+      setActionLoading(false);
     }
   }, [selectedIds, currentFolder, removeLabelFromEmails, clearSelection, handleRefresh, showToast]);
 
   const handleMoveToFolder = useCallback(async (targetLabelId: string) => {
+    setActionLoading(true);
     const ids = Array.from(selectedIds);
     const count = ids.length;
     try {
@@ -188,6 +193,8 @@ export function InboxScreen() {
     } catch (error: any) {
       console.error('Error moving emails:', error);
       showToast(error.message || 'Failed to move emails', 'error');
+    } finally {
+      setActionLoading(false);
     }
   }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast]);
 
@@ -298,17 +305,23 @@ export function InboxScreen() {
             </Text>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity onPress={handleSelectAll} style={styles.selectionActionButton}>
-              <IconSymbol name="checkmark.circle" size={22} color={backgroundColor} />
-            </TouchableOpacity>
-            {showRemoveLabel && (
-              <TouchableOpacity onPress={handleRemoveLabelBatch} style={styles.selectionActionButton}>
-                <IconSymbol name="tag.slash" size={22} color={backgroundColor} />
-              </TouchableOpacity>
+            {actionLoading ? (
+              <ActivityIndicator color={backgroundColor} style={{ marginRight: 16 }} />
+            ) : (
+              <>
+                <TouchableOpacity onPress={handleSelectAll} style={styles.selectionActionButton}>
+                  <IconSymbol name="checkmark.circle" size={22} color={backgroundColor} />
+                </TouchableOpacity>
+                {showRemoveLabel && (
+                  <TouchableOpacity onPress={handleRemoveLabelBatch} style={styles.selectionActionButton}>
+                    <IconSymbol name="tag.slash" size={22} color={backgroundColor} />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
+                  <IconSymbol name="folder" size={22} color={backgroundColor} />
+                </TouchableOpacity>
+              </>
             )}
-            <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
-              <IconSymbol name="folder" size={22} color={backgroundColor} />
-            </TouchableOpacity>
           </View>
         </View>
       ) : (

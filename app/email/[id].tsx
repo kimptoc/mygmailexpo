@@ -7,6 +7,7 @@ import {
   Linking,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import NativeWebView from '@/components/NativeWebView';
@@ -33,6 +34,7 @@ const EmailDetailScreen = () => {
   const [email, setEmail] = useState<EmailDetail | null>(null);
   const [labelsMap, setLabelsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [webViewHeight, setWebViewHeight] = useState(200);
@@ -76,6 +78,7 @@ const EmailDetailScreen = () => {
 
   const handleRemoveLabel = async () => {
     if (!folderId) return;
+    setActionLoading(true);
     try {
       await removeLabelFromEmails([id], folderId);
       showToast('1 email removed', 'success');
@@ -83,20 +86,23 @@ const EmailDetailScreen = () => {
     } catch (err: any) {
       console.error('Error removing label:', err);
       showToast(err.message || 'Failed to remove label', 'error');
+      setActionLoading(false);
     }
   };
 
   const handleMoveToFolder = async (folder: any) => {
+    setActionLoading(true);
     try {
       // Find current primary label (usually INBOX or the one we navigated from)
       const currentLabelId = email?.labelIds.includes('INBOX') ? 'INBOX' : email?.labelIds[0] || 'INBOX';
       await moveEmailsToLabel([id], folder.id, currentLabelId);
-      showToast('1 email moved', 'success');
+      showToast(`1 email moved`, 'success');
       setShowFolderModal(false);
       router.back();
     } catch (err: any) {
       console.error('Error moving:', err);
       showToast(err.message || 'Failed to move email', 'error');
+      setActionLoading(false);
     }
   };
 
@@ -205,24 +211,33 @@ const EmailDetailScreen = () => {
           <ThemedText style={styles.folderBadge} numberOfLines={1}>{folderName}</ThemedText>
         </View>
         <View style={styles.headerActions}>
-          {showRemoveLabel && (
-            <TouchableOpacity 
-              onPress={handleRemoveLabel} 
-              style={styles.actionButton}
-              accessibilityLabel="Remove label"
-              {...{ title: "Remove label" } as any}
-            >
-              <IconSymbol name="tag.slash" size={22} color={textColor} />
-            </TouchableOpacity>
+          {actionLoading ? (
+            <ActivityIndicator color={textColor} style={{ marginRight: 16 }} />
+          ) : (
+            <>
+              {showRemoveLabel && (
+                <TouchableOpacity 
+                  onPress={handleRemoveLabel} 
+                  style={styles.actionButton}
+                  accessibilityLabel="Remove label"
+                  {...{ title: "Remove label" } as any}
+                >
+                  <IconSymbol name="tag.slash" size={22} color={textColor} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.actionButton}>
+                <IconSymbol name="envelope.badge" size={22} color={textColor} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => setShowFolderModal(true)} 
+                style={styles.actionButton}
+                accessibilityLabel="Move to folder"
+                {...{ title: "Move to folder" } as any}
+              >
+                <IconSymbol name="folder" size={22} color={textColor} />
+              </TouchableOpacity>
+            </>
           )}
-          <TouchableOpacity 
-            onPress={() => setShowFolderModal(true)} 
-            style={styles.actionButton}
-            accessibilityLabel="Move to folder"
-            {...{ title: "Move to folder" } as any}
-          >
-            <IconSymbol name="folder" size={22} color={textColor} />
-          </TouchableOpacity>
         </View>
       </View>
 
