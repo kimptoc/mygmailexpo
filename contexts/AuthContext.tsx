@@ -26,7 +26,7 @@ const IOS_CLIENT_ID = '767000337742-bfpst90t6dbi14qal5k67la0omjifqgg.apps.google
 
 // Gmail API scopes
 const SCOPES = [
-  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
 ];
