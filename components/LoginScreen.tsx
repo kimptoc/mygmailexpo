@@ -1,16 +1,18 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  ActivityIndicator,
-} from 'react-native';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 export function LoginScreen() {
+  const router = useRouter();
   const { authState, signIn } = useAuth();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -56,6 +58,17 @@ export function LoginScreen() {
               <Text style={styles.signInButtonText}>Sign in with Google</Text>
             </>
           )}
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.infoLink,
+            { opacity: pressed ? 0.6 : 1 },
+          ]}
+          onPress={() => router.push('/info')}
+        >
+          <IconSymbol name="info.circle" size={20} color={tintColor} />
+          <Text style={[styles.infoLinkText, { color: tintColor }]}>App Info</Text>
         </Pressable>
 
         <Text style={[styles.disclaimer, { color: textColor + '80' }]}>
@@ -129,5 +142,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     paddingHorizontal: 16,
+  },
+  infoLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginTop: 16,
+    gap: 8,
+  },
+  infoLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -7,7 +7,6 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
-import { LoginScreen } from '@/components/LoginScreen';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -26,9 +25,15 @@ function AppContent() {
     );
   }
 
-  // Show login screen if not authenticated
+  // Show different stack depending on authentication status
   if (authState.status !== 'authenticated') {
-    return <LoginScreen />;
+    return (
+      <Stack>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="info" options={{ headerShown: true, title: 'Info' }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    );
   }
 
   // Show stack navigator when authenticated
@@ -39,6 +44,7 @@ function AppContent() {
       <Stack.Screen name="folder/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="folders" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="info" options={{ headerShown: true, title: 'Info' }} />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

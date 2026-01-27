@@ -261,6 +261,11 @@ function WebAuthProvider({ children }: AuthProviderProps) {
     console.log('Sign in pressed');
     if (!request) {
       console.error('Sign in aborted: Request is null');
+      // Handle case where request is null (e.g., due to CORS issues in web deployment)
+      setAuthState({
+        status: 'error',
+        message: 'Authentication configuration error. Check console for details.'
+      });
       return;
     }
     console.log('Prompting async auth...');
