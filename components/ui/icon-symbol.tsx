@@ -37,6 +37,8 @@ const MAPPING = {
   'envelope.badge': 'mark-email-unread',
   'arrow.clockwise': 'refresh',
   'exclamationmark.triangle': 'warning',
+  'info.circle': 'info',
+  'xmark.circle.fill': 'cancel',
 } as IconMapping;
 
 /**

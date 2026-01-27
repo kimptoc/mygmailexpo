@@ -14,6 +14,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useFolders } from '@/hooks/useFolders';
 import { GmailLabel, RecentFolder } from '@/types/folder';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AboutModal } from '@/components/AboutModal';
 
 const FolderSelectionScreen = () => {
   const { folders, recentFolders, loading, error, loadFolders, addToRecentFolders } = useFolders();
@@ -21,6 +22,7 @@ const FolderSelectionScreen = () => {
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
   const [refreshing, setRefreshing] = React.useState(false);
+  const [showAbout, setShowAbout] = React.useState(false);
 
   useEffect(() => {
     loadFolders();
@@ -85,8 +87,12 @@ const FolderSelectionScreen = () => {
           <IconSymbol name="chevron.left" size={24} color={textColor} />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.headerTitle}>Folders</ThemedText>
-        <View style={styles.placeholder} /> {/* Placeholder for alignment */}
+        <TouchableOpacity onPress={() => setShowAbout(true)} style={styles.backButton}>
+          <IconSymbol name="info.circle" size={24} color={textColor} />
+        </TouchableOpacity>
       </ThemedView>
+
+      <AboutModal visible={showAbout} onClose={() => setShowAbout(false)} />
 
       {error ? (
         <ThemedView style={styles.errorContainer}>
