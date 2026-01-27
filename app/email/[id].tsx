@@ -25,8 +25,6 @@ const EmailDetailScreen = () => {
     getEmailDetail, 
     markAsRead, 
     getLabels, 
-    archiveEmail, 
-    trashEmail,
     moveEmailsToLabel,
     removeLabelFromEmails
   } = useGmailApi();
@@ -74,24 +72,6 @@ const EmailDetailScreen = () => {
     }
   };
 
-  const handleArchive = async () => {
-    try {
-      await archiveEmail(id);
-      router.back();
-    } catch (err) {
-      console.error('Error archiving:', err);
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await trashEmail(id);
-      router.back();
-    } catch (err) {
-      console.error('Error deleting:', err);
-    }
-  };
-  
   const handleRemoveLabel = async () => {
     if (!folderId) return;
     try {
@@ -229,22 +209,6 @@ const EmailDetailScreen = () => {
               <IconSymbol name="tag.slash" size={22} color={textColor} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity 
-            onPress={handleArchive} 
-            style={styles.actionButton}
-            accessibilityLabel="Archive"
-            {...{ title: "Archive" } as any}
-          >
-            <IconSymbol name="archivebox" size={22} color={textColor} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleDelete} 
-            style={styles.actionButton}
-            accessibilityLabel="Delete"
-            {...{ title: "Delete" } as any}
-          >
-            <IconSymbol name="trash" size={22} color={textColor} />
-          </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setShowFolderModal(true)} 
             style={styles.actionButton}

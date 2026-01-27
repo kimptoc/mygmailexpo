@@ -28,7 +28,6 @@ export function InboxScreen() {
   const { 
     getEmailsByLabel, 
     getLabels, 
-    removeLabelFromEmails, 
     moveEmailsToLabel 
   } = useGmailApi();
   const backgroundColor = useThemeColor({}, 'background');
@@ -153,6 +152,11 @@ export function InboxScreen() {
     loadLabels();
   }, [currentFolder, loadEmails, loadLabels]);
 
+  const handleSelectAll = useCallback(() => {
+    const allIds = emailState.emails.map(e => e.id);
+    selectAll(allIds);
+  }, [emailState.emails, selectAll]);
+
   const handleMoveToFolder = useCallback(async (targetLabelId: string) => {
     const ids = Array.from(selectedIds);
     try {
@@ -174,33 +178,6 @@ export function InboxScreen() {
       loadEmails(folder.id);
     }
   }, [isSelectionMode, loadEmails, handleMoveToFolder]);
-
-  const handleSelectAll = useCallback(() => {
-    const allIds = emailState.emails.map(e => e.id);
-    selectAll(allIds);
-  }, [emailState.emails, selectAll]); 
-
-  const handleArchive = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    try {
-      await removeLabelFromEmails(ids, 'INBOX');
-      clearSelection();
-      handleRefresh();
-    } catch (error) {
-      console.error('Error archiving emails:', error);
-    }
-  }, [selectedIds, removeLabelFromEmails, clearSelection, handleRefresh]);
-
-  const handleDelete = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    try {
-      await moveEmailsToLabel(ids, 'TRASH', currentFolder?.id || 'INBOX');
-      clearSelection();
-      handleRefresh();
-    } catch (error) {
-      console.error('Error deleting emails:', error);
-    }
-  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh]);
 
   const renderEmail = useCallback(
     ({ item }: { item: Email }) => (
@@ -294,12 +271,6 @@ export function InboxScreen() {
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={handleSelectAll} style={styles.selectionActionButton}>
               <IconSymbol name="checkmark.circle" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleArchive} style={styles.selectionActionButton}>
-              <IconSymbol name="archivebox" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleDelete} style={styles.selectionActionButton}>
-              <IconSymbol name="trash" size={22} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
               <IconSymbol name="folder" size={22} color="#FFFFFF" />
