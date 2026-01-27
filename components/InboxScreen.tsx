@@ -269,18 +269,18 @@ export function InboxScreen() {
         <View style={[styles.header, styles.selectionHeader, { backgroundColor: tintColor }]}>
           <View style={styles.headerLeft}>
             <TouchableOpacity onPress={clearSelection} style={styles.selectionActionButton}>
-              <IconSymbol name="xmark" size={24} color="#FFFFFF" />
+              <IconSymbol name="xmark" size={24} color={backgroundColor} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: '#FFFFFF', fontSize: 20 }]}>
+            <Text style={[styles.headerTitle, { color: backgroundColor, fontSize: 20 }]}>
               {selectionCount}
             </Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={handleSelectAll} style={styles.selectionActionButton}>
-              <IconSymbol name="checkmark.circle" size={22} color="#FFFFFF" />
+              <IconSymbol name="checkmark.circle" size={22} color={backgroundColor} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
-              <IconSymbol name="folder" size={22} color="#FFFFFF" />
+              <IconSymbol name="folder" size={22} color={backgroundColor} />
             </TouchableOpacity>
           </View>
         </View>
