@@ -10,7 +10,17 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kimptoc.mygmailexpo"
+      "bundleIdentifier": "com.kimptoc.mygmailexpo",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.767000337742-bfpst90t6dbi14qal5k67la0omjifqgg"
+            ]
+          }
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +31,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.kimptoc.mygmailexpo",
+      "package": "com.kimptoc.mygmailexpo"
     },
     "web": {
       "output": "static",
