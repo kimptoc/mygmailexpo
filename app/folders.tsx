@@ -5,6 +5,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
@@ -116,8 +117,8 @@ const FolderSelectionScreen = () => {
             <ThemedText style={styles.sectionTitle}>All Folders</ThemedText>
             {loading && folders.length === 0 ? (
               <ThemedView style={styles.loadingContainer}>
-                <IconSymbol name="arrow.clockwise" size={24} color={tintColor} />
-                <ThemedText>Loading folders...</ThemedText>
+                <ActivityIndicator size="large" color={tintColor} />
+                <ThemedText style={{ marginLeft: 8 }}>Loading folders...</ThemedText>
               </ThemedView>
             ) : (
               <FlatList

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
@@ -113,8 +114,8 @@ const FolderScreen = () => {
 
       {loading && emails.length === 0 && (
         <ThemedView style={styles.loadingContainer}>
-          <IconSymbol name="arrow.clockwise" size={24} color={tintColor} />
-          <ThemedText>Loading emails...</ThemedText>
+          <ActivityIndicator size="large" color={tintColor} />
+          <ThemedText style={{ marginLeft: 8 }}>Loading emails...</ThemedText>
         </ThemedView>
       )}
     </ThemedView>
