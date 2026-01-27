@@ -61,10 +61,12 @@ function NativeAuthProvider({ children }: AuthProviderProps) {
 
   const checkCurrentUser = async () => {
     try {
-      const response = await GoogleSignin.signInSilently();
+      const response: any = await GoogleSignin.signInSilently();
       if (isSuccessResponse(response)) {
         await fetchAccessTokenAndSetState(response.data.user.email);
       }
+      // For other response types (like noSavedCredentialFound), we just continue
+      // without setting the auth state
     } catch {
       // No existing session
     }
@@ -99,6 +101,8 @@ function NativeAuthProvider({ children }: AuthProviderProps) {
 
       if (isSuccessResponse(response)) {
         await fetchAccessTokenAndSetState(response.data.user.email);
+      } else if ((response as any).type === 'success' && (response as any).data?.user?.email) {
+        await fetchAccessTokenAndSetState((response as any).data.user.email);
       } else {
         setAuthState({ status: 'unauthenticated' });
       }

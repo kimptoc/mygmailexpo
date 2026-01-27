@@ -7,16 +7,21 @@ import {
   ActivityIndicator,
   RefreshControl,
   Pressable,
+  TouchableOpacity,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { GmailApiService } from '@/services/gmailApi';
+import { useGmailApi } from '@/services/gmailApi';
+import { GmailLabel } from '@/types/folder';
 import { Email, EmailListState } from '@/types/gmail';
 import { EmailItem } from '@/components/EmailItem';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import FolderSelectionModal from '@/components/FolderSelectionModal';
 
 export function InboxScreen() {
   const { authState, signOut, getAccessToken } = useAuth();
+  const { getEmailsByLabel, getLabels } = useGmailApi();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
@@ -29,10 +34,12 @@ export function InboxScreen() {
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentFolder, setCurrentFolder] = useState<GmailLabel | null>(null);
+  const [showFolderModal, setShowFolderModal] = useState(false);
 
   const userEmail = authState.status === 'authenticated' ? authState.userEmail : '';
 
-  const loadEmails = useCallback(async (refresh = false) => {
+  const loadEmails = useCallback(async (folderId?: string, refresh = false) => {
     const accessToken = getAccessToken();
     if (!accessToken) return;
 
@@ -43,8 +50,10 @@ export function InboxScreen() {
     }
 
     try {
-      const gmailService = new GmailApiService(accessToken);
-      const result = await gmailService.getInboxEmails(20);
+      // If no folder is selected, default to INBOX
+      const targetFolderId = folderId || 'INBOX';
+      
+      const result = await getEmailsByLabel(targetFolderId, 20);
 
       setEmailState({
         emails: result.emails,
@@ -62,47 +71,33 @@ export function InboxScreen() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [getAccessToken]);
+  }, [getAccessToken, getEmailsByLabel]);
 
   const loadMoreEmails = useCallback(async () => {
-    const accessToken = getAccessToken();
-    if (!accessToken || !emailState.nextPageToken || isLoadingMore) return;
-
-    setIsLoadingMore(true);
-
-    try {
-      const gmailService = new GmailApiService(accessToken);
-      const result = await gmailService.getInboxEmails(20, emailState.nextPageToken);
-
-      setEmailState((prev) => ({
-        emails: [...prev.emails, ...result.emails],
-        isLoading: false,
-        error: undefined,
-        nextPageToken: result.nextPageToken,
-      }));
-    } catch (error) {
-      // Keep existing emails on pagination error
-      setEmailState((prev) => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to load more emails',
-      }));
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [getAccessToken, emailState.nextPageToken, isLoadingMore]);
+    // Pagination implementation would go here
+    // For now, we'll just reload the current folder
+    const folderId = currentFolder?.id || 'INBOX';
+    loadEmails(folderId);
+  }, [currentFolder, loadEmails]);
 
   useEffect(() => {
-    loadEmails();
+    // Load the default INBOX folder
+    loadEmails('INBOX');
   }, [loadEmails]);
 
   const handleEmailPress = useCallback((email: Email) => {
-    // For now, just log the email ID
-    // In the future, this would navigate to email detail screen
-    console.log('Email pressed:', email.id, email.subject);
+    // Navigate to email detail screen
+    router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}`);
   }, []);
 
   const handleRefresh = useCallback(() => {
-    loadEmails(true);
+    const folderId = currentFolder?.id || 'INBOX';
+    loadEmails(folderId, true);
+  }, [currentFolder, loadEmails]);
+
+  const handleSelectFolder = useCallback((folder: GmailLabel) => {
+    setCurrentFolder(folder);
+    loadEmails(folder.id);
   }, [loadEmails]);
 
   const renderEmail = useCallback(
@@ -138,11 +133,11 @@ export function InboxScreen() {
       <View style={styles.emptyContainer}>
         <IconSymbol name="tray.fill" size={64} color={textColor + '40'} />
         <Text style={[styles.emptyText, { color: textColor + '80' }]}>
-          Your inbox is empty
+          {currentFolder ? `No emails in ${currentFolder.name}` : 'Your inbox is empty'}
         </Text>
       </View>
     );
-  }, [emailState.isLoading, textColor]);
+  }, [emailState.isLoading, currentFolder, textColor]);
 
   if (emailState.isLoading && emailState.emails.length === 0) {
     return (
@@ -160,7 +155,7 @@ export function InboxScreen() {
         <Text style={[styles.errorText, { color: textColor }]}>{emailState.error}</Text>
         <Pressable
           style={[styles.retryButton, { backgroundColor: tintColor }]}
-          onPress={() => loadEmails()}
+          onPress={() => loadEmails(currentFolder?.id || 'INBOX')}
         >
           <Text style={styles.retryButtonText}>Retry</Text>
         </Pressable>
@@ -170,10 +165,26 @@ export function InboxScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
+      {/* Folder Selection Modal - Rendered at the top level to avoid conditional hooks */}
+      <FolderSelectionModal
+        visible={showFolderModal}
+        onClose={() => setShowFolderModal(false)}
+        onSelectFolder={handleSelectFolder}
+        currentFolderId={currentFolder?.id}
+      />
+
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: textColor + '20' }]}>
-        <View>
-          <Text style={[styles.headerTitle, { color: textColor }]}>Inbox</Text>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={() => setShowFolderModal(true)}>
+            <View style={styles.folderSelector}>
+              <IconSymbol name="folder" size={20} color={tintColor} />
+              <Text style={[styles.headerTitle, { color: textColor }]}>
+                {currentFolder ? currentFolder.name : 'Inbox'}
+              </Text>
+              <IconSymbol name="chevron.down" size={16} color={textColor + '80'} />
+            </View>
+          </TouchableOpacity>
           <Text style={[styles.headerSubtitle, { color: textColor + '80' }]}>
             {userEmail}
           </Text>
@@ -220,15 +231,26 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 12,
     paddingTop: 60,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  headerLeft: {
+    flex: 1,
+  },
+  folderSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
+    marginLeft: 8,
+    marginRight: 6,
   },
   headerSubtitle: {
     fontSize: 13,
@@ -239,6 +261,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
+    alignSelf: 'flex-start',
+    marginTop: 8,
   },
   signOutText: {
     fontSize: 13,
