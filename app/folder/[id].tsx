@@ -24,6 +24,7 @@ const FolderScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
+  const tintColor = useThemeColor({}, 'tint');
 
   useEffect(() => {
     if (id) {
@@ -112,7 +113,7 @@ const FolderScreen = () => {
 
       {loading && emails.length === 0 && (
         <ThemedView style={styles.loadingContainer}>
-          <IconSymbol name="arrow.clockwise" size={24} color={useThemeColor({}, 'tint')} />
+          <IconSymbol name="arrow.clockwise" size={24} color={tintColor} />
           <ThemedText>Loading emails...</ThemedText>
         </ThemedView>
       )}

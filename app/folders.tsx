@@ -18,6 +18,7 @@ const FolderSelectionScreen = () => {
   const { folders, recentFolders, loading, error, loadFolders, addToRecentFolders } = useFolders();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
+  const tintColor = useThemeColor({}, 'tint');
   const [refreshing, setRefreshing] = React.useState(false);
 
   useEffect(() => {
@@ -43,12 +44,12 @@ const FolderSelectionScreen = () => {
     <TouchableOpacity
       style={[
         styles.folderItem,
-        { backgroundColor: useThemeColor({}, 'background') },
+        { backgroundColor },
       ]}
       onPress={() => handleSelectFolder(item)}
     >
       <View style={styles.folderIcon}>
-        <IconSymbol name="folder" size={24} color={useThemeColor({}, 'tint')} />
+        <IconSymbol name="folder" size={24} color={tintColor} />
       </View>
       <ThemedText style={styles.folderName}>{item.name}</ThemedText>
       <IconSymbol name="chevron.forward" size={20} color={textColor + '80'} />
@@ -63,12 +64,12 @@ const FolderSelectionScreen = () => {
       <TouchableOpacity
         style={[
           styles.folderItem,
-          { backgroundColor: useThemeColor({}, 'background') },
+          { backgroundColor },
         ]}
         onPress={() => handleSelectFolder(folder)}
       >
         <View style={styles.folderIcon}>
-          <IconSymbol name="clock" size={24} color={useThemeColor({}, 'tint')} />
+          <IconSymbol name="clock" size={24} color={tintColor} />
         </View>
         <ThemedText style={styles.folderName}>{folder.name}</ThemedText>
         <IconSymbol name="chevron.forward" size={20} color={textColor + '80'} />
@@ -80,7 +81,7 @@ const FolderSelectionScreen = () => {
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <ThemedView style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={useThemeColor({}, 'text')} />
+          <IconSymbol name="chevron.left" size={24} color={textColor} />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.headerTitle}>Folders</ThemedText>
         <View style={styles.placeholder} /> {/* Placeholder for alignment */}
@@ -115,7 +116,7 @@ const FolderSelectionScreen = () => {
             <ThemedText style={styles.sectionTitle}>All Folders</ThemedText>
             {loading && folders.length === 0 ? (
               <ThemedView style={styles.loadingContainer}>
-                <IconSymbol name="arrow.clockwise" size={24} color={useThemeColor({}, 'tint')} />
+                <IconSymbol name="arrow.clockwise" size={24} color={tintColor} />
                 <ThemedText>Loading folders...</ThemedText>
               </ThemedView>
             ) : (
