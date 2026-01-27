@@ -41,3 +41,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# expo-auth-session temp files
+.temp_AuthSession.js
