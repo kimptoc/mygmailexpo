@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
+import {
+  GoogleSignin,
+  isSuccessResponse,
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { AuthState } from '@/types/gmail';
-
-// Required for web browser to close after auth
-WebBrowser.maybeCompleteAuthSession();
 
 // Google OAuth client IDs
 const WEB_CLIENT_ID = '767000337742-8ld4hre5nr02mu27dc5hj3i0r05p2vg4.apps.googleusercontent.com';
+// Android client ID - created with package name and SHA-1 fingerprint
+const ANDROID_CLIENT_ID = '767000337742-s5gvjb3andab3c3gbfr7m13sl1eq9o2n.apps.googleusercontent.com';
 
 // Gmail API scopes
 const SCOPES = [
@@ -32,89 +35,147 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>({ status: 'unauthenticated' });
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  // Use Google provider with proper configuration
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: WEB_CLIENT_ID,
-    iosClientId: WEB_CLIENT_ID,
-    webClientId: WEB_CLIENT_ID,
-    expoClientId: WEB_CLIENT_ID,
-    scopes: SCOPES,
-  });
-
+  // Configure Google Sign-In on mount
   useEffect(() => {
-    console.log('Google Auth Request:', request?.url);
-  }, [request]);
+    console.log('=== CONFIGURING GOOGLE SIGN-IN ===');
+    console.log('Platform:', Platform.OS);
+    console.log('Web Client ID:', WEB_CLIENT_ID);
+    console.log('Scopes:', SCOPES.join(', '));
 
-  // Handle auth response
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      console.log('Auth success, token:', authentication?.accessToken ? 'received' : 'missing');
+    GoogleSignin.configure({
+      webClientId: WEB_CLIENT_ID,
+      scopes: SCOPES,
+      offlineAccess: true, // Required to get access token for API calls
+    });
 
-      if (authentication?.accessToken) {
-        fetchUserInfo(authentication.accessToken);
-      } else {
-        setAuthState({
-          status: 'error',
-          message: 'No access token received',
-        });
-      }
-    } else if (response?.type === 'error') {
-      console.log('Auth error:', response.error);
-      setAuthState({
-        status: 'error',
-        message: response.error?.message || 'Authentication failed',
-      });
-    } else if (response?.type === 'dismiss' || response?.type === 'cancel') {
-      setAuthState({ status: 'unauthenticated' });
-    }
-  }, [response]);
+    console.log('Google Sign-In configured');
+    console.log('==================================');
 
-  const fetchUserInfo = async (accessToken: string) => {
+    // Check if user is already signed in
+    checkCurrentUser();
+  }, []);
+
+  const checkCurrentUser = async () => {
     try {
-      const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const userInfo = await res.json();
+      const response = await GoogleSignin.signInSilently();
+      console.log('Silent sign-in response:', response);
 
-      setAuthState({
-        status: 'authenticated',
-        userEmail: userInfo.email,
-        accessToken: accessToken,
-      });
+      if (isSuccessResponse(response)) {
+        console.log('User already signed in:', response.data.user.email);
+        await fetchAccessTokenAndSetState(response.data.user.email);
+      }
     } catch (error) {
-      console.log('Failed to fetch user info:', error);
+      console.log('No existing session or silent sign-in failed:', error);
+      // User is not signed in, that's fine
+    }
+  };
+
+  const fetchAccessTokenAndSetState = async (email: string) => {
+    try {
+      console.log('=== FETCHING ACCESS TOKEN ===');
+      const tokens = await GoogleSignin.getTokens();
+      console.log('Access token received:', tokens.accessToken ? 'yes' : 'no');
+
+      if (tokens.accessToken) {
+        setAccessToken(tokens.accessToken);
+        setAuthState({
+          status: 'authenticated',
+          userEmail: email,
+          accessToken: tokens.accessToken,
+        });
+        console.log('Auth state set to authenticated for:', email);
+      } else {
+        throw new Error('No access token received');
+      }
+      console.log('=============================');
+    } catch (error) {
+      console.log('Error fetching access token:', error);
       setAuthState({
         status: 'error',
-        message: 'Failed to fetch user info',
+        message: 'Failed to get access token',
       });
     }
   };
 
   const signIn = useCallback(async () => {
-    if (!request) {
-      console.log('Auth request not ready');
-      return;
-    }
-
+    console.log('=== SIGN IN INITIATED ===');
     setAuthState({ status: 'loading' });
-    try {
-      console.log('Starting auth with redirect URI:', request.redirectUri);
-      // Use proxy for native platforms to go through auth.expo.io
-      const options = Platform.OS !== 'web' ? { useProxy: true } : undefined;
-      await promptAsync(options);
-    } catch (error) {
-      console.log('Sign in error:', error);
-      setAuthState({
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Sign in failed',
-      });
-    }
-  }, [request, promptAsync]);
 
-  const signOut = useCallback(() => {
+    try {
+      // Check if Play Services are available (Android only)
+      console.log('Checking Play Services...');
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      console.log('Play Services available');
+
+      // Perform sign-in
+      console.log('Starting Google Sign-In...');
+      const response = await GoogleSignin.signIn();
+      console.log('Sign-in response type:', response.type);
+      console.log('Full response:', JSON.stringify(response, null, 2));
+
+      if (isSuccessResponse(response)) {
+        const { user } = response.data;
+        console.log('Sign-in successful for:', user.email);
+        console.log('User info:', JSON.stringify(user, null, 2));
+
+        await fetchAccessTokenAndSetState(user.email);
+      } else {
+        // User cancelled
+        console.log('Sign-in was cancelled');
+        setAuthState({ status: 'unauthenticated' });
+      }
+    } catch (error) {
+      console.log('=== SIGN IN ERROR ===');
+      console.log('Error:', error);
+
+      if (isErrorWithCode(error)) {
+        console.log('Error code:', error.code);
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            console.log('User cancelled sign-in');
+            setAuthState({ status: 'unauthenticated' });
+            break;
+          case statusCodes.IN_PROGRESS:
+            console.log('Sign-in already in progress');
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            console.log('Play Services not available');
+            setAuthState({
+              status: 'error',
+              message: 'Google Play Services not available',
+            });
+            break;
+          default:
+            console.log('Unknown error code:', error.code);
+            setAuthState({
+              status: 'error',
+              message: error.message || 'Sign in failed',
+            });
+        }
+      } else {
+        setAuthState({
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Sign in failed',
+        });
+      }
+      console.log('=====================');
+    }
+    console.log('=========================');
+  }, []);
+
+  const signOut = useCallback(async () => {
+    console.log('=== SIGN OUT ===');
+    try {
+      await GoogleSignin.signOut();
+      console.log('Signed out successfully');
+    } catch (error) {
+      console.log('Error signing out:', error);
+    }
+    setAccessToken(null);
     setAuthState({ status: 'unauthenticated' });
+    console.log('================');
   }, []);
 
   const getAccessToken = useCallback(() => {
