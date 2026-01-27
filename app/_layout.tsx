@@ -1,11 +1,11 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { Stack } from 'expo-router';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { LoginScreen } from '@/components/LoginScreen';
-import { InboxScreen } from '@/components/InboxScreen';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export const unstable_settings = {
@@ -30,8 +30,17 @@ function AppContent() {
     return <LoginScreen />;
   }
 
-  // Show inbox when authenticated
-  return <InboxScreen />;
+  // Show stack navigator when authenticated
+  return (
+    <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="email/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="folder/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="folders" options={{ headerShown: false }} />
+      <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
