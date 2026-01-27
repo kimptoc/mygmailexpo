@@ -10,7 +10,14 @@ export default function InfoScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
 
-  const formattedDate = new Date(buildInfo.buildDate).toLocaleString();
+  const formattedDate = new Date(buildInfo.buildDate).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
