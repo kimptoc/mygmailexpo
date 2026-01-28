@@ -1,12 +1,12 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
 import { Stack } from 'expo-router';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -29,9 +29,8 @@ function AppContent() {
   if (authState.status !== 'authenticated') {
     return (
       <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="info" options={{ headerShown: true, title: 'Info' }} />
-        <Stack.Screen name="+not-found" />
       </Stack>
     );
   }
@@ -45,7 +44,6 @@ function AppContent() {
       <Stack.Screen name="folders" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       <Stack.Screen name="info" options={{ headerShown: true, title: 'Info' }} />
-      <Stack.Screen name="+not-found" />
     </Stack>
   );
 }
