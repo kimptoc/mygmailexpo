@@ -15,7 +15,7 @@
     "development-builds": "npx eas-cli@latest workflow:run create-development-builds.yml",
     "deploy": "npx eas-cli@latest workflow:run deploy-to-production.yml",
     "build:web": "node ./scripts/generate-build-info.js && expo export --platform web --clear",
-    "deploy:web": "npm run build:web && touch dist/.nojekyll && gh-pages -d dist",
+    "deploy:web": "npm run build:web && touch dist/.nojekyll && gh-pages -d dist --dotfiles",
     "serve:local": "npm run build:web && touch dist/.nojekyll && rm -rf /tmp/serve-test && mkdir -p /tmp/serve-test/mygmailexpo && cp -r dist/* /tmp/serve-test/mygmailexpo/ && npx serve /tmp/serve-test"
   },
   "dependencies": {

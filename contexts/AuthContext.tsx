@@ -22,6 +22,7 @@ if (Platform.OS === 'web') {
 
 // Google OAuth client IDs
 const WEB_CLIENT_ID = '767000337742-8ld4hre5nr02mu27dc5hj3i0r05p2vg4.apps.googleusercontent.com';
+const WEB_CLIENT_SECRET = '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';
 const IOS_CLIENT_ID = '767000337742-bfpst90t6dbi14qal5k67la0omjifqgg.apps.googleusercontent.com';
 
 // Gmail API scopes
@@ -160,9 +161,17 @@ function WebAuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>({ status: 'unauthenticated' });
   const AUTH_STORAGE_KEY = '@auth_session';
 
+  // Fixed redirect URI - must match Google Cloud Console exactly regardless of current page
+  const redirectUri = Platform.OS === 'web' && typeof window !== 'undefined'
+    ? window.location.origin + '/mygmailexpo/'
+    : undefined;
+
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: WEB_CLIENT_ID,
+    iosClientId: IOS_CLIENT_ID,  // Required by expo-auth-session validation, but not used (native uses @react-native-google-signin)
     scopes: SCOPES,
+    redirectUri,
+    responseType: 'code',
   });
 
   useEffect(() => {
@@ -214,13 +223,14 @@ function WebAuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     if (response?.type === 'success') {
-      const { authentication } = response;
-      if (authentication?.accessToken) {
-        fetchUserInfo(authentication.accessToken);
+      if (response.code) {
+        exchangeCodeForToken(response.code);
+      } else if (response.authentication?.accessToken) {
+        fetchUserInfo(response.authentication.accessToken);
       } else {
         setAuthState({
           status: 'error',
-          message: 'No access token received',
+          message: 'No authorization code or access token received',
         });
       }
     } else if (response?.type === 'error') {
@@ -230,6 +240,40 @@ function WebAuthProvider({ children }: AuthProviderProps) {
       });
     }
   }, [response]);
+
+  const exchangeCodeForToken = async (code: string) => {
+    try {
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: WEB_CLIENT_ID,
+          client_secret: WEB_CLIENT_SECRET,
+          redirect_uri: redirectUri || '',
+          grant_type: 'authorization_code',
+        }).toString(),
+      });
+
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.text();
+        throw new Error(`Token exchange failed: ${errorData}`);
+      }
+
+      const tokens = await tokenResponse.json();
+      if (tokens.access_token) {
+        fetchUserInfo(tokens.access_token);
+      } else {
+        throw new Error('No access_token in token response');
+      }
+    } catch (err: any) {
+      console.error('Code exchange error:', err);
+      setAuthState({
+        status: 'error',
+        message: err.message || 'Failed to exchange authorization code',
+      });
+    }
+  };
 
   const fetchUserInfo = async (accessToken: string) => {
     try {
