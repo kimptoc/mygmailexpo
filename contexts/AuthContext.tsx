@@ -190,6 +190,7 @@ function WebAuthProvider({ children }: AuthProviderProps) {
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId: WEB_CLIENT_ID,
+      iosClientId: IOS_CLIENT_ID,
       scopes: SCOPES,
       redirectUri,
       responseType: AuthSession.ResponseType.Code,
