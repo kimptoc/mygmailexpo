@@ -82,6 +82,13 @@ This document outlines the work needed to achieve feature parity between the Exp
 
 ### Cleanup (Low Priority)
 
+0. **user defined fixes/todos
+   - local web version does not start, issues with google auth
+   - remote/gh deployed web version does not show action icons
+   - deployed web version secret issue
+   - how to get non-dev build
+   - ios build still not working
+
 1. **Remove dead code: `trashEmail` and `archiveEmail` API methods**
    - These methods are still in `services/gmailApi.ts` but no longer used
    - Can be removed to clean up codebase

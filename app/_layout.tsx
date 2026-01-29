@@ -3,6 +3,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
+import { useFonts } from 'expo-font';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
@@ -15,9 +17,12 @@ export const unstable_settings = {
 function AppContent() {
   const { authState } = useAuth();
   const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({
+    ...MaterialIcons.font,
+  });
 
-  // Show loading screen while checking auth
-  if (authState.status === 'loading') {
+  // Show loading screen while checking auth or loading fonts
+  if (authState.status === 'loading' || !fontsLoaded) {
     return (
       <View style={[styles.loadingContainer, colorScheme === 'dark' ? styles.darkBg : styles.lightBg]}>
         <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#fff' : '#0a7ea4'} />
