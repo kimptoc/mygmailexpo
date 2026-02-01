@@ -13,8 +13,8 @@ import Constants from 'expo-constants';
 // Google OAuth client IDs from app.json
 const googleConfig =
   Constants.expoConfig?.extra?.google ??
-  Constants.manifest?.extra?.google ??
-  Constants.manifest2?.extra?.google ??
+  (Constants.manifest as any)?.extra?.google ??
+  (Constants.manifest2 as any)?.extra?.google ??
   {};
 const webClientId = googleConfig.webClientId;
 const iosClientId = googleConfig.iosClientId;
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     console.log('[Debug] expoConfig keys:', Object.keys(Constants.expoConfig || {}));
     console.log('[Debug] manifest keys:', Object.keys(Constants.manifest || {}));
     console.log('[Debug] manifest2 keys:', Object.keys(Constants.manifest2 || {}));
-    console.log('[Debug] extra:', Constants.expoConfig?.extra || Constants.manifest?.extra || Constants.manifest2?.extra);
+    console.log('[Debug] extra:', Constants.expoConfig?.extra || (Constants.manifest as any)?.extra || (Constants.manifest2 as any)?.extra);
     
     console.log('[Debug] Resolved webClientId:', webClientId);
     console.log('[Debug] Resolved iosClientId:', iosClientId);

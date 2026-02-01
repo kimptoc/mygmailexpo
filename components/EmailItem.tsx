@@ -139,8 +139,8 @@ export function EmailItem({
               <LabelChip
                 key={label.id}
                 name={label.name}
-                backgroundColor={label.backgroundColor}
-                textColor={label.textColor}
+                backgroundColor={label.color?.backgroundColor}
+                textColor={label.color?.textColor}
               />
             ))}
             {remainingLabelsCount > 0 && (
