@@ -83,11 +83,14 @@ This document outlines the work needed to achieve feature parity between the Exp
 ### Cleanup (Low Priority)
 
 0. **user defined fixes/todos
-   - local web version does not start, issues with google auth
-   - remote/gh deployed web version does not show action icons
+   - ✅ local web version does not start, issues with google auth
+     - **Fixed:** Changed redirect URI in `contexts/AuthContext.web.tsx` to use `origin` directly instead of `AuthSession.makeRedirectUri()`
+   - ✅ remote/gh deployed web version does not show action icons
+     - **Root Cause:** `.gitignore` contains `node_modules/` which causes `dist/assets/node_modules/` (containing MaterialIcons font) to be excluded from gh-pages deployment
+     - **Fix:** Add `!dist/assets/node_modules/` negation pattern to `.gitignore`
    - deployed web version secret issue
    - how to get non-dev build
-   - ios build still not working
+   - ios build still not working - issues immediately on startup.
 
 1. **Remove dead code: `trashEmail` and `archiveEmail` API methods**
    - These methods are still in `services/gmailApi.ts` but no longer used

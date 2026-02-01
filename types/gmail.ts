@@ -134,6 +134,7 @@ export function getFromEmail(from: string): string {
 export function getSmartFormattedDate(timestamp: number): string {
   const date = new Date(timestamp);
   const now = new Date();
+  
   const isToday =
     date.getDate() === now.getDate() &&
     date.getMonth() === now.getMonth() &&
@@ -141,6 +142,17 @@ export function getSmartFormattedDate(timestamp: number): string {
 
   if (isToday) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear();
+
+  if (isYesterday) {
+    return 'Yesterday';
   }
 
   const isThisYear = date.getFullYear() === now.getFullYear();

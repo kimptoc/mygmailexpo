@@ -5,7 +5,6 @@ node_modules/
 
 # Expo
 .expo/
-dist/
 web-build/
 expo-env.d.ts
 
@@ -46,4 +45,8 @@ app-example
 .temp_AuthSession.js
 
 # web build output
-/dist
+/dist/*
+!/dist/assets/
+/dist/assets/*
+!/dist/assets/node_modules/
+dist/*
