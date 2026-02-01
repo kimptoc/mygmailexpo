@@ -63,8 +63,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true,
-      "baseUrl": "/mygmailexpo"
+      "reactCompiler": true
     },
     "extra": {
       "router": {},
