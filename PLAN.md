@@ -91,11 +91,11 @@ This document outlines the work needed to achieve feature parity between the Exp
    - deployed web version secret issue
    - how to get non-dev build
    - ios build still not working - issues immediately on startup.
+   - **Move action not removing old label**
+     - ✅ **Fixed:** Updated `handleMoveToFolder` in `app/email/[id].tsx` to use `folderId` from route params.
 
 1. **Remove dead code: `trashEmail` and `archiveEmail` API methods**
-   - These methods are still in `services/gmailApi.ts` but no longer used
-   - Can be removed to clean up codebase
-   - **File:** `services/gmailApi.ts:299-330, 402-418`
+   - ✅ **Done:** These methods have been removed from `services/gmailApi.ts`.
 
 ### Nice to Have (Optional)
 
@@ -105,9 +105,8 @@ This document outlines the work needed to achieve feature parity between the Exp
    - **File:** `app/email/[id].tsx:276`
 
 3. **Add "Yesterday" to smart date formatting**
-   - Current: jumps from time (today) to "Mon d" (older)
-   - Could add "Yesterday" for better UX
-   - **File:** `types/gmail.ts` - `getSmartFormattedDate()`
+   - ✅ **Done:** Implemented in `types/gmail.ts`
+
 
 4. **Toast notifications for actions**
    - Currently shows Alert on error only

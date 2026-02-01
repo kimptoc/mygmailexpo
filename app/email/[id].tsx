@@ -93,8 +93,8 @@ const EmailDetailScreen = () => {
   const handleMoveToFolder = async (folder: any) => {
     setActionLoading(true);
     try {
-      // Find current primary label (usually INBOX or the one we navigated from)
-      const currentLabelId = email?.labelIds.includes('INBOX') ? 'INBOX' : email?.labelIds[0] || 'INBOX';
+      // Use the folderId from route params as the current primary label
+      const currentLabelId = folderId || 'INBOX';
       await moveEmailsToLabel([id], folder.id, currentLabelId);
       showToast(`1 email moved`, 'success');
       setShowFolderModal(false);
