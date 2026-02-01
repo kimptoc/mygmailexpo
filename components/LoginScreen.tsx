@@ -17,6 +17,12 @@ export function LoginScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
+  const errorColor = useThemeColor({}, 'error');
+  const errorBackgroundColor = useThemeColor({}, 'errorBackground');
+
+  // For the sign-in button text: if tint is white (dark mode), use background color for text
+  // Otherwise use white text
+  const buttonTextColor = tintColor === '#fff' || tintColor === '#FFFFFF' ? backgroundColor : '#FFFFFF';
 
   const isLoading = authState.status === 'loading';
   const hasError = authState.status === 'error';
@@ -34,8 +40,8 @@ export function LoginScreen() {
         </Text>
 
         {hasError && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>
+          <View style={[styles.errorContainer, { backgroundColor: errorBackgroundColor }]}>
+            <Text style={[styles.errorText, { color: errorColor }]}>
               {authState.status === 'error' ? authState.message : ''}
             </Text>
           </View>
@@ -51,11 +57,11 @@ export function LoginScreen() {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={buttonTextColor} />
           ) : (
             <>
-              <IconSymbol name="person.fill" size={20} color="#fff" />
-              <Text style={styles.signInButtonText}>Sign in with Google</Text>
+              <IconSymbol name="person.fill" size={20} color={buttonTextColor} />
+              <Text style={[styles.signInButtonText, { color: buttonTextColor }]}>Sign in with Google</Text>
             </>
           )}
         </Pressable>
@@ -109,14 +115,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   errorContainer: {
-    backgroundColor: '#FFEBEE',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     width: '100%',
   },
   errorText: {
-    color: '#C62828',
     textAlign: 'center',
   },
   signInButton: {
@@ -130,7 +134,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   signInButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

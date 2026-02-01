@@ -20,6 +20,7 @@ const FolderSelectionScreen = () => {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
+  const errorColor = useThemeColor({}, 'error');
   const [refreshing, setRefreshing] = React.useState(false);
 
   useEffect(() => {
@@ -90,10 +91,10 @@ const FolderSelectionScreen = () => {
 
       {error ? (
         <ThemedView style={styles.errorContainer}>
-          <IconSymbol name="exclamationmark.triangle" size={48} color="#f44336" />
+          <IconSymbol name="exclamationmark.triangle" size={48} color={errorColor} />
           <ThemedText style={styles.errorText}>{error}</ThemedText>
           <TouchableOpacity
-            style={styles.retryButton}
+            style={[styles.retryButton, { backgroundColor: tintColor }]}
             onPress={loadFolders}
           >
             <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
@@ -196,7 +197,6 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   retryButton: {
-    backgroundColor: '#1e88e5',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,

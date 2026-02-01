@@ -27,6 +27,8 @@ const FolderScreen = () => {
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
 
+  const errorColor = useThemeColor({}, 'error');
+
   useEffect(() => {
     if (id) {
       loadEmails();
@@ -59,7 +61,7 @@ const FolderScreen = () => {
 
   const handleEmailPress = (email: any) => {
     // Navigate to email detail screen
-    router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}`);
+    router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}&folderId=${id}`);
   };
 
   const renderEmailItem = ({ item }: { item: any }) => (
@@ -73,7 +75,7 @@ const FolderScreen = () => {
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <ThemedView style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={useThemeColor({}, 'text')} />
+          <IconSymbol name="chevron.left" size={24} color={textColor} />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.headerTitle}>
           {decodeURIComponent(name || 'Folder')}
@@ -83,10 +85,10 @@ const FolderScreen = () => {
 
       {error ? (
         <ThemedView style={styles.errorContainer}>
-          <IconSymbol name="exclamationmark.triangle" size={48} color="#f44336" />
+          <IconSymbol name="exclamationmark.triangle" size={48} color={errorColor} />
           <ThemedText style={styles.errorText}>{error}</ThemedText>
           <TouchableOpacity
-            style={styles.retryButton}
+            style={[styles.retryButton, { backgroundColor: tintColor }]}
             onPress={loadEmails}
           >
             <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
@@ -104,7 +106,7 @@ const FolderScreen = () => {
             loading ? null : (
               <ThemedView style={styles.emptyContainer}>
                 <IconSymbol name="tray" size={48} color={textColor + '40'} />
-                <ThemedText style={styles.emptyText}>No emails in this folder</ThemedText>
+                <ThemedText style={[styles.emptyText, { color: textColor + '80' }]}>No emails in this folder</ThemedText>
               </ThemedView>
             )
           }
@@ -157,7 +159,6 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   retryButton: {
-    backgroundColor: '#1e88e5',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -176,7 +177,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 16,
     textAlign: 'center',
-    color: '#888',
   },
   emptyList: {
     flexGrow: 1,

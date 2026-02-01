@@ -42,6 +42,8 @@ const EmailDetailScreen = () => {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
+  const separatorColor = useThemeColor({}, 'separator');
+  const errorColor = useThemeColor({}, 'error');
 
   useEffect(() => {
     if (id) {
@@ -183,7 +185,7 @@ const EmailDetailScreen = () => {
   if (error) {
     return (
       <ThemedView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
-        <IconSymbol name="exclamationmark.triangle" size={48} color="#f44336" />
+        <IconSymbol name="exclamationmark.triangle" size={48} color={errorColor} />
         <ThemedText style={styles.errorText}>{error}</ThemedText>
         <TouchableOpacity
           style={[styles.retryButton, { backgroundColor: tintColor }]}
@@ -282,7 +284,7 @@ const EmailDetailScreen = () => {
             </View>
           </View>
           
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: separatorColor }]} />
           
           <View style={styles.bodyContainer}>
             {email.htmlBody ? (
@@ -412,7 +414,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#e0e0e0',
     marginHorizontal: 16,
   },
   bodyContainer: {

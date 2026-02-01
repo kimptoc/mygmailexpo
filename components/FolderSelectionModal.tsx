@@ -34,8 +34,10 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   const [filteredFolders, setFilteredFolders] = useState<GmailLabel[]>([]);
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const borderColor = useThemeColor({}, 'icon');
-  const selectedBackgroundColor = useThemeColor({}, 'tabIconSelected');
+  const separatorColor = useThemeColor({}, 'separator');
+  const errorColor = useThemeColor({}, 'error');
+  const errorBackgroundColor = useThemeColor({}, 'errorBackground');
+  const selectionColor = useThemeColor({}, 'selection');
   const tintColor = useThemeColor({}, 'tint');
 
   useEffect(() => {
@@ -71,7 +73,7 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
       <TouchableOpacity
         style={[
           styles.folderItem,
-          { backgroundColor: isSelected ? selectedBackgroundColor : backgroundColor },
+          { backgroundColor: isSelected ? selectionColor : backgroundColor },
         ]}
         onPress={() => handleSelectFolder(item)}
       >
@@ -96,7 +98,7 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
       <TouchableOpacity
         style={[
           styles.folderItem,
-          { backgroundColor: isSelected ? selectedBackgroundColor : backgroundColor },
+          { backgroundColor: isSelected ? selectionColor : backgroundColor },
         ]}
         onPress={() => handleSelectFolder(folder)}
       >
@@ -120,14 +122,14 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
     >
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={[styles.modalContainer, { backgroundColor }]} onPress={() => {}}>
-          <ThemedView style={styles.header}>
+          <ThemedView style={[styles.header, { borderBottomColor: separatorColor }]}>
             <ThemedText type="title" style={styles.title}>Select Folder</ThemedText>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <IconSymbol name="xmark" size={24} color={textColor} />
             </TouchableOpacity>
           </ThemedView>
 
-          <View style={styles.searchContainer}>
+          <View style={[styles.searchContainer, { borderColor: separatorColor }]}>
             <IconSymbol name="magnifyingglass" size={20} color={textColor + '80'} style={styles.searchIcon} />
             <TextInput
               style={[
@@ -135,7 +137,6 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
                 {
                   backgroundColor,
                   color: textColor,
-                  borderColor: borderColor,
                 },
               ]}
               placeholder="Search folders..."
@@ -146,8 +147,8 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
           </View>
 
           {error ? (
-            <ThemedView style={styles.errorContainer}>
-              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            <ThemedView style={[styles.errorContainer, { backgroundColor: errorBackgroundColor }]}>
+              <ThemedText style={[styles.errorText, { color: errorColor }]}>{error}</ThemedText>
             </ThemedView>
           ) : loading ? (
             <View style={styles.loadingContainer}>
@@ -206,7 +207,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
   },
   title: {
     fontSize: 18,
@@ -270,11 +270,9 @@ const styles = StyleSheet.create({
   errorContainer: {
     padding: 16,
     borderRadius: 8,
-    backgroundColor: '#ffebee',
     marginBottom: 16,
   },
   errorText: {
-    color: '#c62828',
     textAlign: 'center',
   },
 });

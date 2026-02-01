@@ -9,6 +9,7 @@ import buildInfo from '@/constants/build-info.json';
 export default function InfoScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
+  const separatorColor = useThemeColor({}, 'separator');
 
   const formattedDate = new Date(buildInfo.buildDate).toLocaleString(undefined, {
     year: 'numeric',
@@ -33,21 +34,21 @@ export default function InfoScreen() {
             <ThemedText style={styles.value}>MyGmail Expo</ThemedText>
           </View>
           
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: separatorColor }]} />
 
           <View style={styles.infoRow}>
             <ThemedText style={styles.label}>Version</ThemedText>
             <ThemedText style={styles.value}>{buildInfo.version}</ThemedText>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: separatorColor }]} />
 
           <View style={styles.infoRow}>
             <ThemedText style={styles.label}>Build Date</ThemedText>
             <ThemedText style={styles.value}>{formattedDate}</ThemedText>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: separatorColor }]} />
 
           <View style={styles.infoRow}>
             <ThemedText style={styles.label}>Platform</ThemedText>
@@ -101,8 +102,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#ccc',
-    opacity: 0.2,
   },
   footer: {
     textAlign: 'center',

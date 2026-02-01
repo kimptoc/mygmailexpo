@@ -37,6 +37,8 @@ export function EmailItem({
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
+  const separatorColor = useThemeColor({}, 'separator');
+  const selectionColor = useThemeColor({}, 'selection');
 
   const senderName = getFromName(email.from);
   const firstLetter = senderName.charAt(0).toUpperCase() || '?';
@@ -68,7 +70,10 @@ export function EmailItem({
     <Pressable
       style={({ pressed }) => [
         styles.container,
-        { backgroundColor: isSelected ? tintColor + '20' : pressed ? backgroundColor + '80' : backgroundColor },
+        { 
+          backgroundColor: isSelected ? selectionColor : pressed ? backgroundColor + '80' : backgroundColor,
+          borderBottomColor: separatorColor
+        },
       ]}
       onPress={onPress}
       onLongPress={onLongPress}
@@ -164,7 +169,6 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'flex-start',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E0E0E0',
   },
   avatar: {
     width: 40,

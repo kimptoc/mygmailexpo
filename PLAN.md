@@ -58,7 +58,7 @@ This document outlines the work needed to achieve feature parity between the Exp
 | 4.1 Pull to Refresh | ✅ Done | RefreshControl implemented |
 | 4.2 Skeleton Loaders | ✅ Done | EmailItemSkeleton component |
 | 4.3 Error Handling | ✅ Improved | Alert.alert() for user-facing errors |
-| 4.4 Dark Mode | ⚠️ Partial | Theme colors used, WebView may need work |
+| 4.4 Dark Mode | ✅ Done | Theme colors used, including separators and errors |
 
 **Files:** `components/EmailItemSkeleton.tsx`
 
@@ -89,10 +89,11 @@ This document outlines the work needed to achieve feature parity between the Exp
      - **Root Cause:** `.gitignore` contains `node_modules/` which causes `dist/assets/node_modules/` (containing MaterialIcons font) to be excluded from gh-pages deployment
      - **Fix:** Add `!dist/assets/node_modules/` negation pattern to `.gitignore`
    - deployed web version secret issue
-   - how to get non-dev build
-   - ios build still not working - issues immediately on startup.
    - **Move action not removing old label**
      - ✅ **Fixed:** Updated `handleMoveToFolder` in `app/email/[id].tsx` to use `folderId` from route params.
+   - **Dark mode: white backgrounds with unreadable text**
+     - ✅ **Fixed:** Added theme-aware `separator`, `error`, and `errorBackground` colors to `constants/theme.ts`. Updated components (`FolderSelectionModal`, `FolderScreen`, `LabelChip`, `EmailItem`, `EmailDetailScreen`, `InfoScreen`) to use these colors.
+
 
 1. **Remove dead code: `trashEmail` and `archiveEmail` API methods**
    - ✅ **Done:** These methods have been removed from `services/gmailApi.ts`.
