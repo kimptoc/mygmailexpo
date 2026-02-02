@@ -83,6 +83,8 @@ This document outlines the work needed to achieve feature parity between the Exp
 ### Cleanup (Low Priority)
 
 0. **user defined fixes/todos
+   - ios gives error when trying to remove lablel, it was a lot of emails
+   - deployed web not loading, fails to find entry.js
    - ✅ local web version does not start, issues with google auth
      - **Fixed:** Changed redirect URI in `contexts/AuthContext.web.tsx` to use `origin` directly instead of `AuthSession.makeRedirectUri()`
    - ✅ remote/gh deployed web version does not show action icons
