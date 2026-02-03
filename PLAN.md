@@ -201,6 +201,68 @@ This document outlines the work needed to achieve feature parity between the Exp
 
 ---
 
+## Unit Testing Plan
+
+This project currently has no unit tests. Adding them will improve stability and prevent regressions.
+
+### 1. Setup
+
+1.  **Install dev dependencies:**
+    ```bash
+    npm install --save-dev jest jest-expo ts-jest @types/jest @testing-library/react-native @testing-library/jest-native
+    ```
+2.  **Configure Jest:** Create a `jest.config.js` file in the root directory:
+    ```javascript
+    module.exports = {
+      preset: 'jest-expo',
+      transformIgnorePatterns: [
+        'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)',
+      ],
+      setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
+    };
+    ```
+3.  **Add test script to `package.json`:**
+    ```json
+    "scripts": {
+      "test": "jest"
+    }
+    ```
+
+### 2. Missing Unit Tests (Prioritized)
+
+#### Business Logic & Data Transformation (High Priority)
+
+-   **File:** `types/gmail.ts`
+    -   [ ] **`getSmartFormattedDate()`**: Test various timestamps (today, yesterday, this year, last year) to ensure they produce the correct "smart" date strings.
+    -   [ ] **`getFromName()`**: Test different `From` header formats (e.g., `"Name <email>"`, `"email"`, `"Name"`) to verify correct name extraction.
+
+-   **File:** `hooks/useEmailSelection.ts`
+    -   [x] **`toggleSelection`**: Test that it correctly adds/removes IDs and updates `isSelectionMode`.
+    -   [x] **`clearSelection`**: Test that it resets the state.
+    -   [x] **`selectAll`**: Test that it correctly selects all provided IDs.
+
+#### API Service Logic (Medium Priority)
+
+-   **File:** `services/gmailApi.ts` (Requires mocking `fetch`)
+    -   [ ] **`removeLabelFromEmails` / `moveEmailsToLabel`**: Mock `fetch` and test the `Promise.allSettled` logic. Verify that it correctly separates `succeeded` and `failed` results.
+    -   [ ] **`getEmailsByLabel`**: Mock `fetch` to test that the function correctly processes and maps an API response to the `Email` type.
+
+#### Component Rendering (Medium Priority)
+
+-   **File:** `components/LoginScreen.tsx`
+    -   [ ] Verify the "Sign in with Google" button is disabled when `authState` is `'loading'`.
+    -   [ ] Verify the error message is displayed when `authState` is `'error'`.
+
+-   **File:** `components/EmailItem.tsx`
+    -   [ ] Check that the "unread" styles (bold text, indicator) are applied when `email.isUnread` is `true`.
+    -   [ ] Verify that `LabelChip` components are rendered correctly based on `email.labelIds`.
+
+-   **File:** `components/BatchErrorModal.tsx`
+    -   [ ] Test that the modal correctly displays the number of `succeededCount` and lists all `failedItems`.
+
+
+---
+
 ## Conclusion
 
 **Feature parity is essentially complete.** The main planned work items have been implemented:

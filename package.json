@@ -16,7 +16,10 @@
     "deploy": "npx eas-cli@latest workflow:run deploy-to-production.yml",
     "build:web": "WEB_BUILD=1 node ./scripts/generate-build-info.js && WEB_BUILD=1 expo export --platform web --clear",
     "deploy:web": "npm run build:web && node ./scripts/deploy-web.js",
-    "serve:local": "WEB_BUILD=1 npm run build:web && touch dist/.nojekyll && rm -rf /tmp/serve-test && mkdir -p /tmp/serve-test/mygmailexpo && cp -r dist/* /tmp/serve-test/mygmailexpo/ && npx serve /tmp/serve-test"
+    "serve:local": "WEB_BUILD=1 npm run build:web && touch dist/.nojekyll && rm -rf /tmp/serve-test && mkdir -p /tmp/serve-test/mygmailexpo && cp -r dist/* /tmp/serve-test/mygmailexpo/ && npx serve /tmp/serve-test",
+    "test": "npm run test:node && npm run test:react",
+    "test:node": "jest --config jest.config.node.js",
+    "test:react": "jest --config jest.config.react.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -54,10 +57,18 @@
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "gh-pages": "^6.3.0",
+    "jest": "^30.2.0",
+    "jest-expo": "^54.0.17",
+    "react-test-renderer": "^19.1.0",
+    "ts-jest": "^29.4.6",
     "typescript": "~5.9.2"
   }
 }

@@ -111,9 +111,14 @@ export interface EmailListState {
 // Helper functions ported from KMP app
 export function getFromName(from: string): string {
   // Extract name from "Name <email@example.com>" format
-  const match = from.match(/^([^<]+)</);
-  if (match) {
-    return match[1].trim();
+  const nameMatch = from.match(/^([^<]+)</);
+  if (nameMatch) {
+    return nameMatch[1].trim();
+  }
+  // Extract email from "<email@example.com>" format
+  const emailMatch = from.match(/<([^>]+)>/);
+  if (emailMatch) {
+    return emailMatch[1].split('@')[0];
   }
   // If no angle brackets, check if it's just an email
   if (from.includes('@')) {
