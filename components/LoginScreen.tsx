@@ -41,7 +41,10 @@ export function LoginScreen() {
 
         {hasError && (
           <View style={[styles.errorContainer, { backgroundColor: errorBackgroundColor }]}>
-            <Text style={[styles.errorText, { color: errorColor }]}>
+            <Text 
+              style={[styles.errorText, { color: errorColor }]}
+              selectable={true}
+            >
               {authState.status === 'error' ? authState.message : ''}
             </Text>
           </View>

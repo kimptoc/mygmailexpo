@@ -84,7 +84,12 @@ This document outlines the work needed to achieve feature parity between the Exp
 
 0. **user defined fixes/todos
    - ios gives error when trying to remove lablel, it was a lot of emails
-   - deployed web not loading, fails to find entry.js
+   - **deployed web not loading, fails to find entry.js**
+     - ✅ **Fixed:** Added path post-processing to `index.html` in `scripts/deploy-web.js` to correctly reference `/_expo/` assets within the `/mygmailexpo/` subdirectory.
+
+     - ✅ **Fixed:** Created `app.config.js` to conditionally set `experiments.baseUrl` only for web builds (`WEB_BUILD=1`), resolving the "Unmatched Route" error on GitHub Pages while keeping native builds working. Updated `package.json` scripts.
+
+
    - ✅ local web version does not start, issues with google auth
      - **Fixed:** Changed redirect URI in `contexts/AuthContext.web.tsx` to use `origin` directly instead of `AuthSession.makeRedirectUri()`
    - ✅ remote/gh deployed web version does not show action icons
@@ -95,7 +100,18 @@ This document outlines the work needed to achieve feature parity between the Exp
      - ✅ **Fixed:** Updated `handleMoveToFolder` in `app/email/[id].tsx` to use `folderId` from route params.
    - **Dark mode: white backgrounds with unreadable text**
      - ✅ **Fixed:** Added theme-aware `separator`, `error`, and `errorBackground` colors to `constants/theme.ts`. Updated components (`FolderSelectionModal`, `FolderScreen`, `LabelChip`, `EmailItem`, `EmailDetailScreen`, `InfoScreen`) to use these colors.
+   - **Google auth error not copyable on mobile**
+     - ✅ **Fixed:** Added `selectable={true}` to the error `Text` component in `components/LoginScreen.tsx`.
 
+   - **Production Android build: DEVELOPER_ERROR on Google sign-in**
+     - **Problem:** Production builds use a different signing certificate (SHA-1) than debug builds
+     - **Root Cause:** Google OAuth requires ALL certificate fingerprints registered in Google Cloud Console
+     - **Fix steps:**
+       1. Get production SHA-1: `eas credentials --platform android`
+       2. Go to Google Cloud Console → APIs & Services → Credentials
+       3. Find Android OAuth 2.0 Client ID
+       4. Add the production SHA-1 fingerprint
+       5. Save and rebuild the app
 
 1. **Remove dead code: `trashEmail` and `archiveEmail` API methods**
    - ✅ **Done:** These methods have been removed from `services/gmailApi.ts`.

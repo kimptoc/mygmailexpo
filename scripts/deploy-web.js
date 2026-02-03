@@ -59,6 +59,18 @@ try {
     copyRecursive(path.join(distPath, file), path.join(tempDir, file));
   }
 
+  // Fix paths in index.html for GitHub Pages subdirectory deployment
+  const indexPath = path.join(tempDir, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    console.log('Fixing paths in index.html...');
+    let html = fs.readFileSync(indexPath, 'utf8');
+    // Replace root-absolute paths with subdirectory paths
+    html = html.replace(/"\/_expo\//g, '"/mygmailexpo/_expo/');
+    html = html.replace(/src="\/_expo\//g, 'src="/mygmailexpo/_expo/');
+    html = html.replace(/href="\/_expo\//g, 'href="/mygmailexpo/_expo/');
+    fs.writeFileSync(indexPath, html);
+  }
+
   // Create .nojekyll file
   fs.writeFileSync(path.join(tempDir, '.nojekyll'), '');
 
