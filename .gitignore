@@ -50,3 +50,5 @@ app-example
 /dist/assets/*
 !/dist/assets/node_modules/
 dist/*
+
+build*.apk
