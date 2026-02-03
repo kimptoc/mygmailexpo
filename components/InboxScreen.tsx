@@ -13,12 +13,13 @@ import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useToast } from '@/contexts/ToastContext';
-import { useGmailApi } from '@/services/gmailApi';
+import { useGmailApi, BatchResult } from '@/services/gmailApi';
 import { GmailLabel } from '@/types/folder';
 import { Email, EmailListState } from '@/types/gmail';
 import { EmailItem } from '@/components/EmailItem';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import FolderSelectionModal from '@/components/FolderSelectionModal';
+import BatchErrorModal from '@/components/BatchErrorModal';
 
 import { useEmailSelection } from '@/hooks/useEmailSelection';
 
@@ -45,6 +46,7 @@ export function InboxScreen() {
     enterSelectionMode,
     selectionCount,
     selectAll,
+    setSelectedIds,
   } = useEmailSelection();
 
   const [emailState, setEmailState] = useState<EmailListState>({
@@ -58,6 +60,13 @@ export function InboxScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [currentFolder, setCurrentFolder] = useState<GmailLabel | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [batchErrorDetails, setBatchErrorDetails] = useState<{
+    succeededCount: number;
+    failedItems: { id: string, subject?: string, error: string }[];
+    action: 'remove' | 'move';
+    targetLabelId?: string;
+  } | null>(null);
   const [labelsMap, setLabelsMap] = useState<Record<string, GmailLabel>>({});
 
   const userEmail = authState.status === 'authenticated' ? authState.userEmail : '';
@@ -163,40 +172,87 @@ export function InboxScreen() {
     selectAll(allIds);
   }, [emailState.emails, selectAll]);
 
-  const handleRemoveLabelBatch = useCallback(async () => {
+  const handleRemoveLabelBatch = useCallback(async (idsToProcess?: string[]) => {
     if (!currentFolder) return;
     setActionLoading(true);
-    const ids = Array.from(selectedIds);
-    const count = ids.length;
+    const ids = Array.isArray(idsToProcess) ? idsToProcess : Array.from(selectedIds);
     try {
-      await removeLabelFromEmails(ids, currentFolder.id);
-      showToast(`${count} email${count !== 1 ? 's' : ''} removed`, 'success');
+      const result = await removeLabelFromEmails(ids, currentFolder.id);
+      if (result.failed.length > 0) {
+        setBatchErrorDetails({
+          succeededCount: result.succeeded.length,
+          failedItems: result.failed.map(f => ({
+            ...f,
+            subject: emailState.emails.find(e => e.id === f.id)?.subject,
+          })),
+          action: 'remove',
+        });
+        setShowErrorModal(true);
+      } else {
+        showToast(`${result.succeeded.length} email(s) removed`, 'success');
+      }
+      
+      // On success, always clear the selection
       clearSelection();
       handleRefresh();
+
     } catch (error: any) {
       console.error('Error removing labels:', error);
       showToast(error.message || 'Failed to remove labels', 'error');
     } finally {
       setActionLoading(false);
     }
-  }, [selectedIds, currentFolder, removeLabelFromEmails, clearSelection, handleRefresh, showToast]);
+  }, [selectedIds, currentFolder, removeLabelFromEmails, clearSelection, handleRefresh, showToast, emailState.emails]);
 
-  const handleMoveToFolder = useCallback(async (targetLabelId: string) => {
+  const handleMoveToFolder = useCallback(async (targetLabelId: string, idsToProcess?: string[]) => {
     setActionLoading(true);
-    const ids = Array.from(selectedIds);
-    const count = ids.length;
+    const ids = Array.isArray(idsToProcess) ? idsToProcess : Array.from(selectedIds);
     try {
-      await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX');
-      showToast(`${count} email${count !== 1 ? 's' : ''} moved`, 'success');
+      const result = await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX');
+
+      if (result.failed.length > 0) {
+        setBatchErrorDetails({
+          succeededCount: result.succeeded.length,
+          failedItems: result.failed.map(f => ({
+            ...f,
+            subject: emailState.emails.find(e => e.id === f.id)?.subject,
+          })),
+          action: 'move',
+          targetLabelId: targetLabelId,
+        });
+        setShowErrorModal(true);
+      } else {
+        showToast(`${result.succeeded.length} email(s) moved`, 'success');
+      }
+      
+      // On success, always clear the selection
       clearSelection();
       handleRefresh();
+
     } catch (error: any) {
       console.error('Error moving emails:', error);
       showToast(error.message || 'Failed to move emails', 'error');
     } finally {
       setActionLoading(false);
     }
-  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast]);
+  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast, emailState.emails]);
+
+  const handleRetryBatch = () => {
+    if (!batchErrorDetails) return;
+    
+    const failedIds = batchErrorDetails.failedItems.map(item => item.id);
+    setShowErrorModal(false);
+    
+    if (batchErrorDetails.action === 'remove') {
+      // Pass the failed IDs to the same handler
+      handleRemoveLabelBatch(failedIds);
+    } else if (batchErrorDetails.action === 'move' && batchErrorDetails.targetLabelId) {
+      handleMoveToFolder(batchErrorDetails.targetLabelId, failedIds);
+    }
+    // Still clear the original selection after retrying
+    clearSelection();
+    setBatchErrorDetails(null);
+  };
 
   const handleSelectFolder = useCallback((folder: GmailLabel) => {
     if (isSelectionMode) {
@@ -292,6 +348,15 @@ export function InboxScreen() {
         onSelectFolder={handleSelectFolder}
         currentFolderId={currentFolder?.id}
       />
+      {batchErrorDetails && (
+        <BatchErrorModal
+          visible={showErrorModal}
+          onClose={() => setShowErrorModal(false)}
+          succeededCount={batchErrorDetails.succeededCount}
+          failedItems={batchErrorDetails.failedItems}
+          onRetry={handleRetryBatch}
+        />
+      )}
 
       {/* Header */}
       {isSelectionMode ? (

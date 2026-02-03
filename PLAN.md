@@ -112,6 +112,12 @@ This document outlines the work needed to achieve feature parity between the Exp
        3. Find Android OAuth 2.0 Client ID
        4. Add the production SHA-1 fingerprint
        5. Save and rebuild the app
+   - **Batch label removal shows error but actually works (20+ items)**
+     - ✅ **Fixed:** 
+       1. Updated `removeLabelFromEmails` and `moveEmailsToLabel` in `services/gmailApi.ts` to use `Promise.allSettled`, returning detailed success/failure results.
+       2. Created `components/BatchErrorModal.tsx` to display a summary of batch operations.
+       3. Updated `components/InboxScreen.tsx` to use the new modal and handle partial failures gracefully, including a "Retry Failed" option.
+
 
 1. **Remove dead code: `trashEmail` and `archiveEmail` API methods**
    - ✅ **Done:** These methods have been removed from `services/gmailApi.ts`.

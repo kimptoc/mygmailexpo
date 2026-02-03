@@ -30,6 +30,11 @@ interface ListResponse {
   resultSizeEstimate: number;
 }
 
+export interface BatchResult {
+  succeeded: string[];
+  failed: { id: string, error: string }[];
+}
+
 export class GmailApiService {
   private static instance: GmailApiService;
   private baseUrl = 'https://www.googleapis.com/gmail/v1/users/me';
@@ -242,28 +247,42 @@ export class GmailApiService {
     }
   }
 
-  async removeLabelFromEmails(accessToken: string, emailIds: string[], labelId: string): Promise<void> {
-    try {
-      await Promise.all(emailIds.map(async id => {
-        const response = await fetch(`${this.baseUrl}/messages/${id}/modify`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            removeLabelIds: [labelId],
-          }),
-        });
+  async removeLabelFromEmails(accessToken: string, emailIds: string[], labelId: string): Promise<BatchResult> {
+    const results = await Promise.allSettled(emailIds.map(async id => {
+      const response = await fetch(`${this.baseUrl}/messages/${id}/modify`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          removeLabelIds: [labelId],
+        }),
+      });
 
-        if (!response.ok) {
-          throw new Error(`Failed to remove label: ${response.status} ${response.statusText}`);
-        }
-      }));
-    } catch (error) {
-      console.error('Error removing label from emails:', error);
-      throw error;
-    }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || `Failed with status ${response.status}`;
+        throw new Error(errorMessage);
+      }
+      return id;
+    }));
+
+    const succeeded: string[] = [];
+    const failed: { id: string, error: string }[] = [];
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        succeeded.push(result.value);
+      } else {
+        failed.push({
+          id: emailIds[index],
+          error: result.reason.message,
+        });
+      }
+    });
+
+    return { succeeded, failed };
   }
 
   async moveEmailsToLabel(
@@ -271,29 +290,43 @@ export class GmailApiService {
     emailIds: string[],
     targetLabelId: string,
     currentLabelId: string
-  ): Promise<void> {
-    try {
-      await Promise.all(emailIds.map(async id => {
-        const response = await fetch(`${this.baseUrl}/messages/${id}/modify`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            addLabelIds: [targetLabelId],
-            removeLabelIds: [currentLabelId],
-          }),
-        });
+  ): Promise<BatchResult> {
+    const results = await Promise.allSettled(emailIds.map(async id => {
+      const response = await fetch(`${this.baseUrl}/messages/${id}/modify`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          addLabelIds: [targetLabelId],
+          removeLabelIds: [currentLabelId],
+        }),
+      });
 
-        if (!response.ok) {
-          throw new Error(`Failed to move email: ${response.status} ${response.statusText}`);
-        }
-      }));
-    } catch (error) {
-      console.error('Error moving emails:', error);
-      throw error;
-    }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || `Failed with status ${response.status}`;
+        throw new Error(errorMessage);
+      }
+      return id;
+    }));
+
+    const succeeded: string[] = [];
+    const failed: { id: string, error: string }[] = [];
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        succeeded.push(result.value);
+      } else {
+        failed.push({
+          id: emailIds[index],
+          error: result.reason.message,
+        });
+      }
+    });
+
+    return { succeeded, failed };
   }
 
   private decodeBase64(base64Str: string): string {
@@ -347,7 +380,7 @@ export const useGmailApi = () => {
     return GmailApiService.getInstance().markAsRead(ensureToken(), emailId);
   };
 
-  const removeLabelFromEmails = async (emailIds: string[], labelId: string): Promise<void> => {
+  const removeLabelFromEmails = async (emailIds: string[], labelId: string): Promise<BatchResult> => {
     return GmailApiService.getInstance().removeLabelFromEmails(ensureToken(), emailIds, labelId);
   };
 
@@ -355,7 +388,7 @@ export const useGmailApi = () => {
     emailIds: string[],
     targetLabelId: string,
     currentLabelId: string
-  ): Promise<void> => {
+  ): Promise<BatchResult> => {
     return GmailApiService.getInstance().moveEmailsToLabel(ensureToken(), emailIds, targetLabelId, currentLabelId);
   };
 
