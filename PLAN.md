@@ -80,10 +80,19 @@ This document outlines the work needed to achieve feature parity between the Exp
 
 ## What's Left To Do
 
+### Folder Picker Rework (Planned)
+
+1. Update recent folder history to store the last 10 items in `hooks/useFolders.ts`.
+2. Add responsive 2-column layout for folder lists (Recent + All) when width allows, using `numColumns`, `columnWrapperStyle`, and per-item widths in `components/FolderSelectionModal.tsx` and `app/folders.tsx`.
+3. Verify the folder picker renders correctly for view selection and move actions (Inbox header, selection actions, and email detail move) on phone vs tablet/web widths.
+
 ### Cleanup (Low Priority)
 
-0. **user defined fixes/todos
-   - ios gives error when trying to remove lablel, it was a lot of emails
+0. **user defined fixes/todos**
+   - **Remove Debug Start Gate page**
+     - ✅ **Fixed:** Removed the `appStarted` state and the conditional rendering of the "Debug Start Gate" screen in `app/_layout.tsx`, allowing the app to initialize directly.
+   - **Unused Imports in app/_layout.tsx**
+     - ✅ **Fixed:** Removed genuinely unused `Button`, `SafeAreaView`, and `useState` imports. Re-added `ThemeProvider`, `DarkTheme`, and `DefaultTheme` as they are actively used.   - ios gives error when trying to remove lablel, it was a lot of emails
    - **deployed web not loading, fails to find entry.js**
      - ✅ **Fixed:** Added path post-processing to `index.html` in `scripts/deploy-web.js` to correctly reference `/_expo/` assets within the `/mygmailexpo/` subdirectory.
 

@@ -72,8 +72,8 @@ export const useFolders = () => {
     // Add to the beginning
     updatedRecentFolders.unshift(newRecentFolder);
     
-    // Keep only the 5 most recent
-    updatedRecentFolders = updatedRecentFolders.slice(0, 5);
+    // Keep only the 10 most recent
+    updatedRecentFolders = updatedRecentFolders.slice(0, 10);
     
     setRecentFolders(updatedRecentFolders);
     

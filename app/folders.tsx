@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
@@ -15,13 +16,23 @@ import { useFolders } from '@/hooks/useFolders';
 import { GmailLabel, RecentFolder } from '@/types/folder';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
+const MIN_COLUMN_WIDTH = 240;
+const COLUMN_GAP = 12;
+
 const FolderSelectionScreen = () => {
   const { folders, recentFolders, loading, error, loadFolders, addToRecentFolders } = useFolders();
+  const { width } = useWindowDimensions();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
   const errorColor = useThemeColor({}, 'error');
   const [refreshing, setRefreshing] = React.useState(false);
+
+  const availableWidth = width - 32;
+  const columnCount = availableWidth >= MIN_COLUMN_WIDTH * 2 + COLUMN_GAP ? 2 : 1;
+  const columnWidth = columnCount === 2
+    ? (availableWidth - COLUMN_GAP) / 2
+    : availableWidth;
 
   useEffect(() => {
     loadFolders();
@@ -46,6 +57,8 @@ const FolderSelectionScreen = () => {
     <TouchableOpacity
       style={[
         styles.folderItem,
+        columnCount > 1 && styles.folderItemColumn,
+        columnCount > 1 && { width: columnWidth },
         { backgroundColor },
       ]}
       onPress={() => handleSelectFolder(item)}
@@ -66,6 +79,8 @@ const FolderSelectionScreen = () => {
       <TouchableOpacity
         style={[
           styles.folderItem,
+          columnCount > 1 && styles.folderItemColumn,
+          columnCount > 1 && { width: columnWidth },
           { backgroundColor },
         ]}
         onPress={() => handleSelectFolder(folder)}
@@ -109,6 +124,9 @@ const FolderSelectionScreen = () => {
                 data={recentFolders}
                 renderItem={renderRecentFolderItem}
                 keyExtractor={(item) => item.id}
+                key={`recent-${columnCount}`}
+                numColumns={columnCount}
+                columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
                 scrollEnabled={false}
               />
             </View>
@@ -126,6 +144,9 @@ const FolderSelectionScreen = () => {
                 data={folders}
                 renderItem={renderFolderItem}
                 keyExtractor={(item) => item.id}
+                key={`all-${columnCount}`}
+                numColumns={columnCount}
+                columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
                 refreshControl={
                   <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                 }
@@ -165,6 +186,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 16,
   },
+  columnWrapper: {
+    justifyContent: 'space-between',
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -177,6 +201,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     marginBottom: 8,
+  },
+  folderItemColumn: {
+    marginBottom: 12,
   },
   folderIcon: {
     marginRight: 16,

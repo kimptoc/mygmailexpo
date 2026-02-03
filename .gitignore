@@ -52,3 +52,4 @@ app-example
 dist/*
 
 build*.apk
+build*.aab

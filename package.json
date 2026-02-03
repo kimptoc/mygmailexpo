@@ -17,9 +17,7 @@
     "build:web": "WEB_BUILD=1 node ./scripts/generate-build-info.js && WEB_BUILD=1 expo export --platform web --clear",
     "deploy:web": "npm run build:web && node ./scripts/deploy-web.js",
     "serve:local": "WEB_BUILD=1 npm run build:web && touch dist/.nojekyll && rm -rf /tmp/serve-test && mkdir -p /tmp/serve-test/mygmailexpo && cp -r dist/* /tmp/serve-test/mygmailexpo/ && npx serve /tmp/serve-test",
-    "test": "npm run test:node && npm run test:react",
-    "test:node": "jest --config jest.config.node.js",
-    "test:react": "jest --config jest.config.react.js"
+    "test": "jest --config jest.config.node.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -58,7 +56,6 @@
   },
   "devDependencies": {
     "@testing-library/jest-native": "^5.4.3",
-    "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",

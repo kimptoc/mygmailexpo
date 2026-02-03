@@ -8,6 +8,7 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -23,6 +24,9 @@ interface FolderSelectionModalProps {
   currentFolderId?: string;
 }
 
+const MIN_COLUMN_WIDTH = 240;
+const COLUMN_GAP = 12;
+
 const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   visible,
   onClose,
@@ -32,6 +36,7 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   const { folders, recentFolders, loading, error, loadFolders, addToRecentFolders } = useFolders();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredFolders, setFilteredFolders] = useState<GmailLabel[]>([]);
+  const { width } = useWindowDimensions();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const separatorColor = useThemeColor({}, 'separator');
@@ -39,6 +44,12 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   const errorBackgroundColor = useThemeColor({}, 'errorBackground');
   const selectionColor = useThemeColor({}, 'selection');
   const tintColor = useThemeColor({}, 'tint');
+
+  const availableWidth = width - 32;
+  const columnCount = availableWidth >= MIN_COLUMN_WIDTH * 2 + COLUMN_GAP ? 2 : 1;
+  const columnWidth = columnCount === 2
+    ? (availableWidth - COLUMN_GAP) / 2
+    : availableWidth;
 
   useEffect(() => {
     if (visible) {
@@ -73,6 +84,8 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
       <TouchableOpacity
         style={[
           styles.folderItem,
+          columnCount > 1 && styles.folderItemColumn,
+          columnCount > 1 && { width: columnWidth },
           { backgroundColor: isSelected ? selectionColor : backgroundColor },
         ]}
         onPress={() => handleSelectFolder(item)}
@@ -98,6 +111,8 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
       <TouchableOpacity
         style={[
           styles.folderItem,
+          columnCount > 1 && styles.folderItemColumn,
+          columnCount > 1 && { width: columnWidth },
           { backgroundColor: isSelected ? selectionColor : backgroundColor },
         ]}
         onPress={() => handleSelectFolder(folder)}
@@ -164,6 +179,9 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
                     data={recentFolders}
                     renderItem={renderRecentFolderItem}
                     keyExtractor={(item) => item.id}
+                    key={`recent-${columnCount}`}
+                    numColumns={columnCount}
+                    columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
                     scrollEnabled={false}
                   />
                 </View>
@@ -175,6 +193,9 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
                   data={filteredFolders}
                   renderItem={renderFolderItem}
                   keyExtractor={(item) => item.id}
+                  key={`all-${columnCount}`}
+                  numColumns={columnCount}
+                  columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
                   showsVerticalScrollIndicator={false}
                   style={styles.folderList}
                 />
@@ -241,6 +262,9 @@ const styles = StyleSheet.create({
   folderList: {
     flex: 1,
   },
+  columnWrapper: {
+    justifyContent: 'space-between',
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -253,6 +277,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 4,
+  },
+  folderItemColumn: {
+    marginBottom: 8,
   },
   folderIcon: {
     marginRight: 12,
