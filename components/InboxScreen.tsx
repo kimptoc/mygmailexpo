@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useToast } from '@/contexts/ToastContext';
 import { useGmailApi, BatchResult } from '@/services/gmailApi';
@@ -26,7 +27,7 @@ import { useEmailSelection } from '@/hooks/useEmailSelection';
 import { EmailItemSkeleton } from '@/components/EmailItemSkeleton';
 
 export function InboxScreen() {
-  const { authState, signOut, getAccessToken } = useAuth();
+  const { authState, signIn, signOut, getAccessToken } = useAuth();
   const { 
     getEmailsByLabel, 
     getLabels, 
@@ -415,23 +416,46 @@ export function InboxScreen() {
       )}
 
       {/* Email List */}
-      <FlatList
-        data={emailState.emails}
-        renderItem={renderEmail}
-        keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={tintColor}
-          />
-        }
-        ListEmptyComponent={renderEmpty}
-        ListFooterComponent={renderFooter}
-        onEndReached={loadMoreEmails}
-        onEndReachedThreshold={0.5}
-        contentContainerStyle={emailState.emails.length === 0 ? styles.emptyList : undefined}
-      />
+      {emailState.error ? (
+        <View style={[styles.centered, { flex: 1 }]}>
+          <IconSymbol name="exclamationmark.triangle" size={48} color={textColor} />
+          <ThemedText style={styles.errorText} selectable>
+            {emailState.error}
+          </ThemedText>
+          <Pressable
+            style={[styles.retryButton, { backgroundColor: tintColor }]}
+            onPress={handleRefresh}
+          >
+            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+          </Pressable>
+          <Pressable
+            style={[styles.secondaryButton, { borderColor: tintColor }]}
+            onPress={signIn}
+          >
+            <ThemedText style={[styles.secondaryButtonText, { color: tintColor }]}>
+              Sign in again
+            </ThemedText>
+          </Pressable>
+        </View>
+      ) : (
+        <FlatList
+          data={emailState.emails}
+          renderItem={renderEmail}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={tintColor}
+            />
+          }
+          ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderFooter}
+          onEndReached={loadMoreEmails}
+          onEndReachedThreshold={0.5}
+          contentContainerStyle={emailState.emails.length === 0 ? styles.emptyList : undefined}
+        />
+      )}
     </View>
   );
 }
@@ -516,6 +540,16 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#fff',
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    marginTop: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
     fontWeight: '600',
   },
   emptyContainer: {

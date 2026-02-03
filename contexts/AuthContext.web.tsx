@@ -5,6 +5,7 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
+import { refreshAccessTokenWithToken } from './authRefresh.web';
 
 // Required for web browser to close after auth
 WebBrowser.maybeCompleteAuthSession();
@@ -32,6 +33,7 @@ interface AuthContextType {
   signIn: () => Promise<void>;
   signOut: () => void;
   getAccessToken: () => string | null;
+  refreshAccessToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -115,7 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
 
             if (refreshToken) {
-              const newAccessToken = await refreshAccessToken(refreshToken);
+              const newAccessToken = await refreshAccessTokenWithToken(refreshToken, webClientId, webClientSecret);
               if (newAccessToken) {
                 // Update stored session with new access token
                 await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
@@ -220,38 +222,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const refreshAccessToken = async (refreshToken: string): Promise<string | null> => {
-    console.log('Attempting to refresh access token...');
-    try {
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: webClientId,
-          client_secret: webClientSecret,
-          refresh_token: refreshToken,
-          grant_type: 'refresh_token',
-        }).toString(),
-      });
-
-      if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.text();
-        console.error('Token refresh failed:', errorData);
-        return null;
-      }
-
-      const tokens = await tokenResponse.json();
-      if (tokens.access_token) {
-        console.log('Access token refreshed successfully');
-        return tokens.access_token;
-      }
-      return null;
-    } catch (err) {
-      console.error('Token refresh error:', err);
-      return null;
-    }
-  };
-
   const fetchUserInfo = async (accessToken: string) => {
     try {
       const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -312,8 +282,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return null;
   }, [authState]);
 
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    if (authState.status !== 'authenticated') return null;
+
+    const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!refreshToken) return null;
+
+    const newAccessToken = await refreshAccessTokenWithToken(refreshToken, webClientId, webClientSecret);
+    if (newAccessToken) {
+      setAuthState((prev) => {
+        if (prev.status !== 'authenticated') return prev;
+        return { ...prev, accessToken: newAccessToken };
+      });
+      await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+        accessToken: newAccessToken,
+        userEmail: authState.userEmail,
+      }));
+    }
+    return newAccessToken;
+  }, [authState]);
+
   return (
-    <AuthContext.Provider value={{ authState, signIn, signOut, getAccessToken }}>
+    <AuthContext.Provider value={{ authState, signIn, signOut, getAccessToken, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

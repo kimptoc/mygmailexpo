@@ -163,7 +163,15 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
 
           {error ? (
             <ThemedView style={[styles.errorContainer, { backgroundColor: errorBackgroundColor }]}>
-              <ThemedText style={[styles.errorText, { color: errorColor }]}>{error}</ThemedText>
+              <ThemedText style={[styles.errorText, { color: errorColor }]} selectable>
+                {error}
+              </ThemedText>
+              <TouchableOpacity
+                style={[styles.retryButton, { backgroundColor: tintColor }]}
+                onPress={loadFolders}
+              >
+                <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+              </TouchableOpacity>
             </ThemedView>
           ) : loading ? (
             <View style={styles.loadingContainer}>
@@ -301,6 +309,17 @@ const styles = StyleSheet.create({
   },
   errorText: {
     textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

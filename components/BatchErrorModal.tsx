@@ -40,7 +40,7 @@ const BatchErrorModal: React.FC<BatchErrorModalProps> = ({
         <ThemedText style={styles.errorSubject} numberOfLines={1}>
           {item.subject || `ID: ${item.id}`}
         </ThemedText>
-        <ThemedText style={[styles.errorMessage, { color: errorColor }]}>
+        <ThemedText style={[styles.errorMessage, { color: errorColor }]} selectable>
           {item.error}
         </ThemedText>
       </View>

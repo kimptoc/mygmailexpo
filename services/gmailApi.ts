@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { GmailLabel } from '@/types/folder';
 import { Email, EmailDetail } from '@/types/gmail';
+import { GmailApiError, withAuthRetryFactory } from './gmailApiAuth';
 
 interface GmailMessageResponse {
   id: string;
@@ -55,7 +56,10 @@ export class GmailApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch labels: ${response.status} ${response.statusText}`);
+        throw new GmailApiError(
+          response.status,
+          `Failed to fetch labels: ${response.status} ${response.statusText}`
+        );
       }
 
       const data = await response.json();
@@ -95,7 +99,10 @@ export class GmailApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch emails: ${response.status} ${response.statusText}`);
+        throw new GmailApiError(
+          response.status,
+          `Failed to fetch emails: ${response.status} ${response.statusText}`
+        );
       }
 
       const data: ListResponse = await response.json();
@@ -129,7 +136,15 @@ export class GmailApiService {
         },
       });
 
-      if (!response.ok) return null;
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new GmailApiError(
+            response.status,
+            `Failed to fetch email: ${response.status} ${response.statusText}`
+          );
+        }
+        return null;
+      }
 
       const data: GmailMessageResponse = await response.json();
       const headers = data.payload.headers || [];
@@ -161,7 +176,10 @@ export class GmailApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch email: ${response.status} ${response.statusText}`);
+        throw new GmailApiError(
+          response.status,
+          `Failed to fetch email: ${response.status} ${response.statusText}`
+        );
       }
 
       const data: GmailMessageResponse = await response.json();
@@ -239,7 +257,10 @@ export class GmailApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to mark as read: ${response.status} ${response.statusText}`);
+        throw new GmailApiError(
+          response.status,
+          `Failed to mark as read: ${response.status} ${response.statusText}`
+        );
       }
     } catch (error) {
       console.error('Error marking email as read:', error);
@@ -263,7 +284,7 @@ export class GmailApiService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error?.message || `Failed with status ${response.status}`;
-        throw new Error(errorMessage);
+        throw new GmailApiError(response.status, errorMessage);
       }
       return id;
     }));
@@ -307,7 +328,7 @@ export class GmailApiService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error?.message || `Failed with status ${response.status}`;
-        throw new Error(errorMessage);
+        throw new GmailApiError(response.status, errorMessage);
       }
       return id;
     }));
@@ -352,16 +373,18 @@ export class GmailApiService {
 }
 
 export const useGmailApi = () => {
-  const { getAccessToken } = useAuth();
+  const { getAccessToken, refreshAccessToken } = useAuth();
 
-  const ensureToken = () => {
+  const ensureToken = async () => {
     const token = getAccessToken();
     if (!token) throw new Error('No access token available');
     return token;
   };
 
+  const withAuthRetry = withAuthRetryFactory(ensureToken, refreshAccessToken);
+
   const getLabels = async (): Promise<GmailLabel[]> => {
-    return GmailApiService.getInstance().getLabels(ensureToken());
+    return withAuthRetry((token) => GmailApiService.getInstance().getLabels(token));
   };
 
   const getEmailsByLabel = async (
@@ -369,19 +392,23 @@ export const useGmailApi = () => {
     maxResults: number = 20,
     pageToken?: string
   ): Promise<{ emails: Email[]; nextPageToken?: string }> => {
-    return GmailApiService.getInstance().getEmailsByLabel(ensureToken(), labelId, maxResults, pageToken);
+    return withAuthRetry((token) =>
+      GmailApiService.getInstance().getEmailsByLabel(token, labelId, maxResults, pageToken)
+    );
   };
 
   const getEmailDetail = async (emailId: string): Promise<EmailDetail> => {
-    return GmailApiService.getInstance().getEmailDetail(ensureToken(), emailId);
+    return withAuthRetry((token) => GmailApiService.getInstance().getEmailDetail(token, emailId));
   };
 
   const markAsRead = async (emailId: string): Promise<void> => {
-    return GmailApiService.getInstance().markAsRead(ensureToken(), emailId);
+    return withAuthRetry((token) => GmailApiService.getInstance().markAsRead(token, emailId));
   };
 
   const removeLabelFromEmails = async (emailIds: string[], labelId: string): Promise<BatchResult> => {
-    return GmailApiService.getInstance().removeLabelFromEmails(ensureToken(), emailIds, labelId);
+    return withAuthRetry((token) =>
+      GmailApiService.getInstance().removeLabelFromEmails(token, emailIds, labelId)
+    );
   };
 
   const moveEmailsToLabel = async (
@@ -389,7 +416,9 @@ export const useGmailApi = () => {
     targetLabelId: string,
     currentLabelId: string
   ): Promise<BatchResult> => {
-    return GmailApiService.getInstance().moveEmailsToLabel(ensureToken(), emailIds, targetLabelId, currentLabelId);
+    return withAuthRetry((token) =>
+      GmailApiService.getInstance().moveEmailsToLabel(token, emailIds, targetLabelId, currentLabelId)
+    );
   };
 
   return {

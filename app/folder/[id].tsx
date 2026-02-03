@@ -15,9 +15,11 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useGmailApi } from '@/services/gmailApi';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { EmailItem } from '@/components/EmailItem';
+import { useAuth } from '@/contexts/AuthContext';
 
 const FolderScreen = () => {
   const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
+  const { signIn } = useAuth();
   const { getEmailsByLabel } = useGmailApi();
   const [emails, setEmails] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,12 +88,22 @@ const FolderScreen = () => {
       {error ? (
         <ThemedView style={styles.errorContainer}>
           <IconSymbol name="exclamationmark.triangle" size={48} color={errorColor} />
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <ThemedText style={styles.errorText} selectable>
+            {error}
+          </ThemedText>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: tintColor }]}
             onPress={loadEmails}
           >
             <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.secondaryButton, { borderColor: tintColor }]}
+            onPress={signIn}
+          >
+            <ThemedText style={[styles.secondaryButtonText, { color: tintColor }]}>
+              Sign in again
+            </ThemedText>
           </TouchableOpacity>
         </ThemedView>
       ) : (
@@ -165,6 +177,16 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#fff',
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    marginTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
     fontWeight: '600',
   },
   emptyContainer: {

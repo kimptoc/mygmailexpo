@@ -64,6 +64,15 @@ This document outlines the work needed to achieve feature parity between the Exp
 
 ---
 
+## Authentication Resilience (Feb 2026)
+
+- Added token refresh on app resume (native) and retry-on-401 for all Gmail API calls.
+- Clear “Session expired. Please sign in again.” messaging when refresh fails.
+- Error messages are now selectable and include quick actions (Retry + Sign in again) across inbox, folders, folder detail, and email detail screens.
+- Tests added for token refresh helper (web) and auth retry logic.
+
+---
+
 ## Recent Commits Summary
 
 | Commit | Description | Plan Item |

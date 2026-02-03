@@ -68,7 +68,9 @@ export function Toast({ message, type = 'info', visible, onHide }: ToastProps) {
           style={styles.icon}
         />
       )}
-      <Text style={styles.text}>{message}</Text>
+      <Text style={styles.text} selectable>
+        {message}
+      </Text>
     </Animated.View>
   );
 }

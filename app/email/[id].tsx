@@ -20,10 +20,12 @@ import { EmailDetail, getFromName } from '@/types/gmail';
 import { LabelChip } from '@/components/LabelChip';
 import FolderSelectionModal from '@/components/FolderSelectionModal';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
   const { showToast } = useToast();
+  const { signIn } = useAuth();
   const { 
     getEmailDetail, 
     markAsRead, 
@@ -186,12 +188,22 @@ const EmailDetailScreen = () => {
     return (
       <ThemedView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
         <IconSymbol name="exclamationmark.triangle" size={48} color={errorColor} />
-        <ThemedText style={styles.errorText}>{error}</ThemedText>
+        <ThemedText style={styles.errorText} selectable>
+          {error}
+        </ThemedText>
         <TouchableOpacity
           style={[styles.retryButton, { backgroundColor: tintColor }]}
           onPress={loadData}
         >
           <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.secondaryButton, { borderColor: tintColor }]}
+          onPress={signIn}
+        >
+          <ThemedText style={[styles.secondaryButtonText, { color: tintColor }]}>
+            Sign in again
+          </ThemedText>
         </TouchableOpacity>
       </ThemedView>
     );
@@ -441,6 +453,16 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#fff',
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    marginTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
     fontWeight: '600',
   },
   headerLeft: {

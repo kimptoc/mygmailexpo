@@ -1,6 +1,6 @@
 import { AuthState } from '@/types/gmail';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import {
   GoogleSignin,
@@ -37,6 +37,7 @@ interface AuthContextType {
   signIn: () => Promise<void>;
   signOut: () => void;
   getAccessToken: () => string | null;
+  refreshAccessToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -79,6 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     checkCurrentUser();
   }, []);
+
 
   const checkCurrentUser = async () => {
     try {
@@ -170,8 +172,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return null;
   }, [authState]);
 
+  const refreshAccessToken = useCallback(async () => {
+    if (authState.status !== 'authenticated') return null;
+
+    try {
+      if (Platform.OS === 'android') {
+        await GoogleSignin.clearCachedAccessToken(authState.accessToken);
+      }
+      const tokens = await GoogleSignin.getTokens();
+      if (tokens.accessToken) {
+        setAuthState((prev) => {
+          if (prev.status !== 'authenticated') return prev;
+          return { ...prev, accessToken: tokens.accessToken };
+        });
+        return tokens.accessToken;
+      }
+    } catch (error) {
+      console.error('Failed to refresh access token:', error);
+    }
+    return null;
+  }, [authState]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        refreshAccessToken();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [refreshAccessToken]);
+
   return (
-    <AuthContext.Provider value={{ authState, signIn, signOut, getAccessToken }}>
+    <AuthContext.Provider value={{ authState, signIn, signOut, getAccessToken, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

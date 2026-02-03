@@ -15,11 +15,13 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useFolders } from '@/hooks/useFolders';
 import { GmailLabel, RecentFolder } from '@/types/folder';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MIN_COLUMN_WIDTH = 240;
 const COLUMN_GAP = 12;
 
 const FolderSelectionScreen = () => {
+  const { signIn } = useAuth();
   const { folders, recentFolders, loading, error, loadFolders, addToRecentFolders } = useFolders();
   const { width } = useWindowDimensions();
   const backgroundColor = useThemeColor({}, 'background');
@@ -107,12 +109,22 @@ const FolderSelectionScreen = () => {
       {error ? (
         <ThemedView style={styles.errorContainer}>
           <IconSymbol name="exclamationmark.triangle" size={48} color={errorColor} />
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <ThemedText style={styles.errorText} selectable>
+            {error}
+          </ThemedText>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: tintColor }]}
             onPress={loadFolders}
           >
             <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.secondaryButton, { borderColor: tintColor }]}
+            onPress={signIn}
+          >
+            <ThemedText style={[styles.secondaryButtonText, { color: tintColor }]}>
+              Sign in again
+            </ThemedText>
           </TouchableOpacity>
         </ThemedView>
       ) : (
@@ -230,6 +242,17 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#fff',
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    marginTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignSelf: 'center',
+  },
+  secondaryButtonText: {
     fontWeight: '600',
   },
   loadingContainer: {
