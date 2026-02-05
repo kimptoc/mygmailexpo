@@ -70,6 +70,7 @@ This document outlines the work needed to achieve feature parity between the Exp
 - Clear “Session expired. Please sign in again.” messaging when refresh fails.
 - Error messages are now selectable and include quick actions (Retry + Sign in again) across inbox, folders, folder detail, and email detail screens.
 - Tests added for token refresh helper (web) and auth retry logic.
+- Gmail label actions now use low-concurrency per-email updates with exponential backoff to avoid Gmail's "too many concurrent requests" errors while retaining per-email failure details. Tests updated.
 
 ---
 

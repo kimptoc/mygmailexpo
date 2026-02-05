@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { GmailLabel } from '@/types/folder';
 import { Email, EmailDetail } from '@/types/gmail';
 import { GmailApiError, withAuthRetryFactory } from './gmailApiAuth';
+import { fetchWithBackoff } from './fetchWithBackoff';
 
 interface GmailMessageResponse {
   id: string;
@@ -39,6 +40,7 @@ export interface BatchResult {
 export class GmailApiService {
   private static instance: GmailApiService;
   private baseUrl = 'https://www.googleapis.com/gmail/v1/users/me';
+  private readonly MAX_CONCURRENCY = 4;
 
   static getInstance(): GmailApiService {
     if (!GmailApiService.instance) {
@@ -269,41 +271,9 @@ export class GmailApiService {
   }
 
   async removeLabelFromEmails(accessToken: string, emailIds: string[], labelId: string): Promise<BatchResult> {
-    const results = await Promise.allSettled(emailIds.map(async id => {
-      const response = await fetch(`${this.baseUrl}/messages/${id}/modify`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          removeLabelIds: [labelId],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error?.message || `Failed with status ${response.status}`;
-        throw new GmailApiError(response.status, errorMessage);
-      }
-      return id;
+    return this.processEmailModifications(accessToken, emailIds, () => ({
+      removeLabelIds: [labelId],
     }));
-
-    const succeeded: string[] = [];
-    const failed: { id: string, error: string }[] = [];
-
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        succeeded.push(result.value);
-      } else {
-        failed.push({
-          id: emailIds[index],
-          error: result.reason.message,
-        });
-      }
-    });
-
-    return { succeeded, failed };
   }
 
   async moveEmailsToLabel(
@@ -312,40 +282,54 @@ export class GmailApiService {
     targetLabelId: string,
     currentLabelId: string
   ): Promise<BatchResult> {
-    const results = await Promise.allSettled(emailIds.map(async id => {
-      const response = await fetch(`${this.baseUrl}/messages/${id}/modify`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          addLabelIds: [targetLabelId],
-          removeLabelIds: [currentLabelId],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error?.message || `Failed with status ${response.status}`;
-        throw new GmailApiError(response.status, errorMessage);
-      }
-      return id;
+    return this.processEmailModifications(accessToken, emailIds, () => ({
+      addLabelIds: [targetLabelId],
+      removeLabelIds: [currentLabelId],
     }));
+  }
 
+  private async processEmailModifications(
+    accessToken: string,
+    emailIds: string[],
+    buildBody: (id: string) => Record<string, any>
+  ): Promise<BatchResult> {
     const succeeded: string[] = [];
-    const failed: { id: string, error: string }[] = [];
+    const failed: { id: string; error: string }[] = [];
+    const workers: Promise<void>[] = [];
 
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        succeeded.push(result.value);
-      } else {
-        failed.push({
-          id: emailIds[index],
-          error: result.reason.message,
-        });
+    for (let i = 0; i < emailIds.length; i += this.MAX_CONCURRENCY) {
+      workers.length = 0;
+      const end = Math.min(i + this.MAX_CONCURRENCY, emailIds.length);
+
+      for (let j = i; j < end; j++) {
+        const id = emailIds[j];
+        workers.push(
+          (async () => {
+            const response = await fetchWithBackoff(`${this.baseUrl}/messages/${id}/modify`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(buildBody(id)),
+            });
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new GmailApiError(response.status, 'Unauthorized');
+              }
+              const errorData = await response.json().catch(() => ({}));
+              const errorMessage = errorData.error?.message || `Failed with status ${response.status}`;
+              failed.push({ id, error: errorMessage });
+            } else {
+              succeeded.push(id);
+            }
+          })()
+        );
       }
-    });
+
+      await Promise.all(workers);
+    }
 
     return { succeeded, failed };
   }
