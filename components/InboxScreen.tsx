@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Pressable,
   TouchableOpacity,
+  useWindowDimensions,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +29,9 @@ import { EmailItemSkeleton } from '@/components/EmailItemSkeleton';
 
 export function InboxScreen() {
   const { authState, signIn, signOut, getAccessToken } = useAuth();
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width > 600;
+  const iconSize = isLargeScreen ? 28 : 22;
   const { 
     getEmailsByLabel, 
     getLabels, 
@@ -170,8 +174,13 @@ export function InboxScreen() {
 
   const handleSelectAll = useCallback(() => {
     const allIds = emailState.emails.map(e => e.id);
-    selectAll(allIds);
-  }, [emailState.emails, selectAll]);
+    const allSelected = selectedIds.size === emailState.emails.length && emailState.emails.length > 0;
+    if (allSelected) {
+      clearSelection();
+    } else {
+      selectAll(allIds);
+    }
+  }, [emailState.emails, selectedIds.size, selectAll, clearSelection]);
 
   const handleRemoveLabelBatch = useCallback(async (idsToProcess?: string[]) => {
     if (!currentFolder) return;
@@ -361,35 +370,50 @@ export function InboxScreen() {
 
       {/* Header */}
       {isSelectionMode ? (
-        <View style={[styles.header, styles.selectionHeader, { backgroundColor: tintColor }]}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={clearSelection} style={styles.selectionActionButton}>
-              <IconSymbol name="xmark" size={24} color={backgroundColor} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: backgroundColor, fontSize: 20 }]}>
-              {selectionCount}
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
-            {actionLoading ? (
-              <ActivityIndicator color={backgroundColor} style={{ marginRight: 16 }} />
-            ) : (
-              <>
-                <TouchableOpacity onPress={handleSelectAll} style={styles.selectionActionButton}>
-                  <IconSymbol name="checkmark.circle" size={22} color={backgroundColor} />
-                </TouchableOpacity>
-                {showRemoveLabel && (
-                  <TouchableOpacity onPress={handleRemoveLabelBatch} style={styles.selectionActionButton}>
-                    <IconSymbol name="tag.slash" size={22} color={backgroundColor} />
+        <>
+          <View style={[styles.header, styles.selectionHeader, { backgroundColor: tintColor }]}>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity onPress={clearSelection} style={styles.selectionActionButton}>
+                <IconSymbol name="xmark" size={iconSize} color={backgroundColor} />
+              </TouchableOpacity>
+              <Text style={[styles.headerTitle, { color: backgroundColor, fontSize: 20 }]}>
+                {selectionCount}
+              </Text>
+            </View>
+            <View style={styles.headerActions}>
+              {actionLoading ? (
+                <ActivityIndicator color={backgroundColor} style={{ marginRight: 16 }} />
+              ) : (
+                <>
+                  {showRemoveLabel && (
+                    <TouchableOpacity onPress={handleRemoveLabelBatch} style={styles.selectionActionButton}>
+                      <IconSymbol name="tag.slash" size={iconSize} color={backgroundColor} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
+                    <IconSymbol name="folder" size={iconSize} color={backgroundColor} />
                   </TouchableOpacity>
-                )}
-                <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
-                  <IconSymbol name="folder" size={22} color={backgroundColor} />
-                </TouchableOpacity>
-              </>
-            )}
+                </>
+              )}
+            </View>
           </View>
-        </View>
+          <View style={styles.selectionBar}>
+            <Pressable onPress={handleSelectAll} style={styles.selectionBarButton}>
+              <IconSymbol
+                name={
+                  selectedIds.size === emailState.emails.length && emailState.emails.length > 0
+                    ? 'checkmark.circle'
+                    : 'circle'
+                }
+                size={iconSize}
+                color={tintColor}
+              />
+              <Text style={[styles.selectionBarText, { color: tintColor }]}>
+                Select All
+              </Text>
+            </Pressable>
+          </View>
+        </>
       ) : (
         <View style={[styles.header, { borderBottomColor: textColor + '20' }]}>
           <View style={styles.headerLeft}>
@@ -509,7 +533,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   selectionActionButton: {
-    padding: 10,
+    padding: 12,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   signOutButton: {
     paddingHorizontal: 12,
@@ -550,6 +578,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   secondaryButtonText: {
+    fontWeight: '600',
+  },
+  selectionBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  selectionBarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    minHeight: 44,
+  },
+  selectionBarText: {
+    marginLeft: 8,
     fontWeight: '600',
   },
   emptyContainer: {

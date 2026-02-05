@@ -8,6 +8,7 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import NativeWebView from '@/components/NativeWebView';
@@ -25,6 +26,8 @@ import { useAuth } from '@/contexts/AuthContext';
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
   const { showToast } = useToast();
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width > 600;
   const { signIn } = useAuth();
   const { 
     getEmailDetail, 
@@ -232,23 +235,20 @@ const EmailDetailScreen = () => {
               {showRemoveLabel && (
                 <TouchableOpacity 
                   onPress={handleRemoveLabel} 
-                  style={styles.actionButton}
+                  style={[styles.actionButton, styles.actionHitSlop]}
                   accessibilityLabel="Remove label"
                   {...{ title: "Remove label" } as any}
                 >
-                  <IconSymbol name="tag.slash" size={22} color={textColor} />
+                  <IconSymbol name="tag.slash" size={isLargeScreen ? 28 : 22} color={textColor} />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity style={styles.actionButton}>
-                <IconSymbol name="envelope.badge" size={22} color={textColor} />
-              </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => setShowFolderModal(true)} 
-                style={styles.actionButton}
+                style={[styles.actionButton, styles.actionHitSlop]}
                 accessibilityLabel="Move to folder"
                 {...{ title: "Move to folder" } as any}
               >
-                <IconSymbol name="folder" size={22} color={textColor} />
+                <IconSymbol name="folder" size={isLargeScreen ? 28 : 22} color={textColor} />
               </TouchableOpacity>
             </>
           )}
@@ -367,6 +367,12 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: 12,
+  },
+  actionHitSlop: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
