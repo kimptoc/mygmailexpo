@@ -96,6 +96,20 @@ This document outlines the work needed to achieve feature parity between the Exp
 2. Add responsive 2-column layout for folder lists (Recent + All) when width allows, using `numColumns`, `columnWrapperStyle`, and per-item widths in `components/FolderSelectionModal.tsx` and `app/folders.tsx`.
 3. Verify the folder picker renders correctly for view selection and move actions (Inbox header, selection actions, and email detail move) on phone vs tablet/web widths.
 
+### Action Buttons Consistency (Planned)
+
+**Problem:** Action buttons differ between InboxScreen (selection mode) and EmailDetailScreen.
+
+**Tasks:**
+1. Remove non-functional "Mark as Unread" button from `app/email/[id].tsx`.
+2. Move "Select All" from header actions to a prominent position (e.g., banner below header or floating button in center/top of list area).
+3. Ensure consistent order for Remove Label and Move to Folder across both screens.
+4. Make buttons larger on tablet/web using `useWindowDimensions`:
+   - Phone: 22px icons
+   - Tablet/Web (width > 600): 28px icons, increased touch targets (min 44x44), more spacing
+
+**Files:** `components/InboxScreen.tsx`, `app/email/[id].tsx`
+
 ### Cleanup (Low Priority)
 
 0. **user defined fixes/todos**
