@@ -1,4 +1,18 @@
+import { base64UrlEncode } from '@/utils/emailEncoder';
+import { GmailApiService } from './gmailApi';
 import { withAuthRetryFactory, GmailApiError } from './gmailApiAuth';
+import { fetchWithBackoff } from './fetchWithBackoff';
+
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    getAccessToken: jest.fn(),
+    refreshAccessToken: jest.fn(),
+  }),
+}));
+
+jest.mock('./fetchWithBackoff', () => ({
+  fetchWithBackoff: jest.fn(),
+}));
 
 describe('withAuthRetryFactory', () => {
   it('retries once on 401 and succeeds with refreshed token', async () => {
@@ -40,5 +54,36 @@ describe('withAuthRetryFactory', () => {
 
     await expect(withAuthRetry(fn)).rejects.toBe(error);
     expect(refreshAccessToken).not.toHaveBeenCalled();
+  });
+});
+
+describe('GmailApiService sendEmail', () => {
+  const fetchWithBackoffMock = fetchWithBackoff as jest.MockedFunction<typeof fetchWithBackoff>;
+
+  beforeEach(() => {
+    fetchWithBackoffMock.mockReset();
+  });
+
+  it('posts base64url raw message via fetchWithBackoff', async () => {
+    const raw = base64UrlEncode('From: me@example.com\r\nTo: you@example.com\r\nSubject: Hi\r\n\r\nBody');
+
+    expect(raw).toMatch(/^[A-Za-z0-9_-]+$/);
+
+    fetchWithBackoffMock.mockResolvedValue({ ok: true, status: 200 } as Response);
+
+    await GmailApiService.getInstance().sendEmail('token-123', raw);
+
+    expect(fetchWithBackoffMock).toHaveBeenCalledTimes(1);
+    expect(fetchWithBackoffMock).toHaveBeenCalledWith(
+      'https://www.googleapis.com/gmail/v1/users/me/messages/send',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer token-123',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ raw }),
+      }
+    );
   });
 });

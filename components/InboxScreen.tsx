@@ -22,6 +22,7 @@ import { EmailItem } from '@/components/EmailItem';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import FolderSelectionModal from '@/components/FolderSelectionModal';
 import BatchErrorModal from '@/components/BatchErrorModal';
+import ComposeEmailModal from '@/components/ComposeEmailModal';
 
 import { useEmailSelection } from '@/hooks/useEmailSelection';
 
@@ -73,6 +74,7 @@ export function InboxScreen() {
     targetLabelId?: string;
   } | null>(null);
   const [labelsMap, setLabelsMap] = useState<Record<string, GmailLabel>>({});
+  const [showComposeModal, setShowComposeModal] = useState(false);
 
   const userEmail = authState.status === 'authenticated' ? authState.userEmail : '';
 
@@ -358,6 +360,11 @@ export function InboxScreen() {
         onSelectFolder={handleSelectFolder}
         currentFolderId={currentFolder?.id}
       />
+      <ComposeEmailModal
+        visible={showComposeModal}
+        onClose={() => setShowComposeModal(false)}
+        fromEmail={userEmail}
+      />
       {batchErrorDetails && (
         <BatchErrorModal
           visible={showErrorModal}
@@ -480,6 +487,14 @@ export function InboxScreen() {
           contentContainerStyle={emailState.emails.length === 0 ? styles.emptyList : undefined}
         />
       )}
+      {!isSelectionMode && (
+        <Pressable
+          style={[styles.fab, { backgroundColor: tintColor }]}
+          onPress={() => setShowComposeModal(true)}
+        >
+          <IconSymbol name="paperplane.fill" size={24} color={backgroundColor} />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -598,6 +613,21 @@ const styles = StyleSheet.create({
   selectionBarText: {
     marginLeft: 8,
     fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
   },
   emptyContainer: {
     flex: 1,

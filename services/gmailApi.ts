@@ -288,6 +288,23 @@ export class GmailApiService {
     }));
   }
 
+  async sendEmail(accessToken: string, raw: string): Promise<void> {
+    const response = await fetchWithBackoff(`${this.baseUrl}/messages/send`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ raw }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error?.message || `Failed with status ${response.status}`;
+      throw new GmailApiError(response.status, errorMessage);
+    }
+  }
+
   private async processEmailModifications(
     accessToken: string,
     emailIds: string[],
@@ -405,6 +422,10 @@ export const useGmailApi = () => {
     );
   };
 
+  const sendEmail = async (raw: string): Promise<void> => {
+    return withAuthRetry((token) => GmailApiService.getInstance().sendEmail(token, raw));
+  };
+
   return {
     getLabels,
     getEmailsByLabel,
@@ -412,5 +433,6 @@ export const useGmailApi = () => {
     markAsRead,
     removeLabelFromEmails,
     moveEmailsToLabel,
+    sendEmail,
   };
 };

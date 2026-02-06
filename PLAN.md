@@ -98,11 +98,55 @@ This document outlines the work needed to achieve feature parity between the Exp
 
 ### Action Buttons Consistency - COMPLETE
 
-- Removed the unused “Mark as Unread” action from email detail.
+- Removed the unused "Mark as Unread" action from email detail.
 - Reordered actions consistently (Remove Label, Move to Folder) on list and detail screens.
-- Added a prominent “Select All” pill below the selection header; kept selection header actions focused on remove/move.
+- Added a prominent "Select All" pill below the selection header; kept selection header actions focused on remove/move.
 - Scaled action icon sizes for tablet/web (`>600px` → 28px) with 44px touch targets.
 - Files: `components/InboxScreen.tsx`, `app/email/[id].tsx`
+
+### Send Email Feature (Planned)
+
+Add ability to send simple plain text emails with To, Subject, and Body fields. From address auto-filled from authenticated user's Gmail.
+
+**Files to Create:**
+1. `/utils/emailEncoder.ts` - RFC 2822 message formatting and base64url encoding
+2. `/components/ComposeEmailModal.tsx` - Modal with form fields (follows `FolderSelectionModal.tsx` patterns)
+
+**Files to Modify:**
+3. `/services/gmailApi.ts` - Add `sendEmail` method (POST to `/messages/send` with base64url raw message)
+4. `/components/InboxScreen.tsx` - Add FAB button and compose modal integration
+
+**Implementation Steps:**
+1. Create `/utils/emailEncoder.ts`:
+   - `buildRfc2822Message({ to, cc?, bcc?, from, subject, body })` - RFC 2822 with CRLF line endings, `MIME-Version: 1.0`, `Content-Type: text/plain; charset=UTF-8`
+   - Support multiple recipients (comma-separated), trim inputs, allow optional cc/bcc
+   - `base64UrlEncode(str)` - UTF-8 bytes → base64url without padding
+
+2. Add `sendEmail` to `/services/gmailApi.ts`:
+   - Add method to `GmailApiService` class following existing patterns
+   - Add to `useGmailApi` hook return with `withAuthRetry` wrapper
+   - Endpoint: POST `/messages/send` with `{ raw: encodedMessage }`
+   - Apply exponential backoff on 429/503 (reuse fetchWithBackoff)
+
+3. Create `/components/ComposeEmailModal.tsx`:
+   - Props: `visible`, `onClose`, `fromEmail`
+   - Form: From (read-only), To (required, email format), Subject (required), Body (multiline)
+   - Disable Send while submitting; show spinner; keep values on error, clear on success
+   - Toast success/error messaging; guard against missing auth
+
+4. Update `/components/InboxScreen.tsx`:
+   - Add `showComposeModal` state
+   - Add FAB (56x56, bottom-right, `paperplane.fill` icon, hidden in selection mode)
+   - Render `<ComposeEmailModal fromEmail={userEmail} />`
+
+**Verification:**
+- [ ] Existing tests pass (`npm test`)
+- [ ] FAB visible on inbox, hidden during selection
+- [ ] Modal opens with From pre-filled
+- [ ] Validation errors show toast
+- [ ] Email sends and arrives at recipient
+- [ ] Encoder tests cover ASCII + non-ASCII, multiple recipients, empty optional fields
+- [ ] sendEmail mock test validates payload shape/base64url and backoff
 
 ### Cleanup (Low Priority)
 
