@@ -11,14 +11,18 @@ export default function InfoScreen() {
   const textColor = useThemeColor({}, 'text');
   const separatorColor = useThemeColor({}, 'separator');
 
-  const formattedDate = new Date(buildInfo.buildDate).toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+  const isPlaceholder = buildInfo?.version === '0.0.0' && buildInfo?.buildDate === '1970-01-01T00:00:00.000Z';
+  const buildDate = !isPlaceholder && buildInfo?.buildDate ? new Date(buildInfo.buildDate) : null;
+  const formattedDate = buildDate && !Number.isNaN(buildDate.getTime())
+    ? buildDate.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    : 'Unknown';
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>

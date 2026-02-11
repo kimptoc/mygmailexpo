@@ -16,6 +16,7 @@ import { useGmailApi } from '@/services/gmailApi';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { EmailItem } from '@/components/EmailItem';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 const FolderScreen = () => {
   const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
@@ -27,7 +28,7 @@ const FolderScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
+  const { tintColor, actionButtonBackground, actionButtonText } = useActionButtonColors();
 
   const errorColor = useThemeColor({}, 'error');
 
@@ -92,10 +93,12 @@ const FolderScreen = () => {
             {error}
           </ThemedText>
           <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: tintColor }]}
+            style={[styles.retryButton, { backgroundColor: actionButtonBackground }]}
             onPress={loadEmails}
           >
-            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+            <ThemedText style={[styles.retryButtonText, { color: actionButtonText }]}>
+              Retry
+            </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.secondaryButton, { borderColor: tintColor }]}

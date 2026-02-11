@@ -15,6 +15,7 @@ import NativeWebView from '@/components/NativeWebView';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useGmailApi } from '@/services/gmailApi';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { EmailDetail, getFromName } from '@/types/gmail';
@@ -22,6 +23,7 @@ import { LabelChip } from '@/components/LabelChip';
 import FolderSelectionModal from '@/components/FolderSelectionModal';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
@@ -46,9 +48,11 @@ const EmailDetailScreen = () => {
   
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
   const separatorColor = useThemeColor({}, 'separator');
   const errorColor = useThemeColor({}, 'error');
+  const { tintColor, actionButtonBackground, actionButtonText } = useActionButtonColors();
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
 
   useEffect(() => {
     if (id) {
@@ -157,7 +161,7 @@ const EmailDetailScreen = () => {
               font-size: 16px;
               line-height: 1.5;
               color: ${textColor};
-              background-color: transparent;
+              background-color: ${isDark ? backgroundColor : 'transparent'};
               margin: 0;
               padding: 0;
               word-wrap: break-word;
@@ -169,6 +173,9 @@ const EmailDetailScreen = () => {
             a {
               color: ${tintColor};
             }
+            :root {
+              color-scheme: light dark;
+            }
           </style>
         </head>
         <body>
@@ -176,7 +183,7 @@ const EmailDetailScreen = () => {
         </body>
       </html>
     `;
-  }, [email, textColor, tintColor]);
+  }, [email, textColor, tintColor, backgroundColor, isDark]);
 
   if (loading) {
     return (
@@ -195,10 +202,12 @@ const EmailDetailScreen = () => {
           {error}
         </ThemedText>
         <TouchableOpacity
-          style={[styles.retryButton, { backgroundColor: tintColor }]}
+          style={[styles.retryButton, { backgroundColor: actionButtonBackground }]}
           onPress={loadData}
         >
-          <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+          <ThemedText style={[styles.retryButtonText, { color: actionButtonText }]}>
+            Retry
+          </ThemedText>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.secondaryButton, { borderColor: tintColor }]}

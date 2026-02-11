@@ -4,6 +4,7 @@ import { Email, getFromName, getSmartFormattedDate } from '@/types/gmail';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { LabelChip } from './LabelChip';
 import { GmailLabel } from '@/types/folder';
+import { useIsTintWhite } from '@/hooks/use-tint-contrast';
 
 import { IconSymbol } from './ui/icon-symbol';
 
@@ -39,6 +40,8 @@ export function EmailItem({
   const tintColor = useThemeColor({}, 'tint');
   const separatorColor = useThemeColor({}, 'separator');
   const selectionColor = useThemeColor({}, 'selection');
+  const isTintWhite = useIsTintWhite();
+  const checkmarkColor = isTintWhite ? backgroundColor : '#FFFFFF';
 
   const senderName = getFromName(email.from);
   const firstLetter = senderName.charAt(0).toUpperCase() || '?';
@@ -92,7 +95,7 @@ export function EmailItem({
         ]}
       >
         {isSelected ? (
-          <IconSymbol name="checkmark" size={24} color="#FFFFFF" />
+          <IconSymbol name="checkmark" size={24} color={checkmarkColor} />
         ) : (
           <Text style={styles.avatarText}>{firstLetter}</Text>
         )}

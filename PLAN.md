@@ -59,6 +59,7 @@ This document outlines the work needed to achieve feature parity between the Exp
 | 4.2 Skeleton Loaders | ✅ Done | EmailItemSkeleton component |
 | 4.3 Error Handling | ✅ Improved | Alert.alert() for user-facing errors |
 | 4.4 Dark Mode | ✅ Done | Theme colors used, including separators and errors |
+| 4.5 Dark Mode Contrast | ✅ Improved | Fixed white-tint button text/background contrast in error/selection states |
 
 **Files:** `components/EmailItemSkeleton.tsx`
 
@@ -351,3 +352,7 @@ This project currently has no unit tests. Adding them will improve stability and
 - Remove dead code (`trashEmail`, `archiveEmail`)
 - Fix web iframe height (optional)
 - Add "Yesterday" date format (optional)
+
+**Build Info**
+- Build date is generated via `npm run build:info` and wired into `build:web`, `android`, `ios`, and `eas-build-post-install` hooks.
+- A tracked `constants/build-info.json` stub exists so dev runs (`expo start`) always resolve the module.

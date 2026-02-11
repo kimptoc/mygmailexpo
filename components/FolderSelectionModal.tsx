@@ -17,6 +17,7 @@ import { useFolders } from '@/hooks/useFolders';
 import { GmailLabel } from '@/types/folder';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { buildFolderListItems, FolderListItem } from '@/utils/folder-list';
+import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 interface FolderSelectionModalProps {
   visible: boolean;
@@ -44,7 +45,7 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   const errorColor = useThemeColor({}, 'error');
   const errorBackgroundColor = useThemeColor({}, 'errorBackground');
   const selectionColor = useThemeColor({}, 'selection');
-  const tintColor = useThemeColor({}, 'tint');
+  const { tintColor, actionButtonBackground, actionButtonText } = useActionButtonColors();
 
   const availableWidth = width - 32;
   const columnCount = availableWidth >= MIN_COLUMN_WIDTH * 2 + COLUMN_GAP ? 2 : 1;
@@ -174,10 +175,12 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
                 {error}
               </ThemedText>
               <TouchableOpacity
-                style={[styles.retryButton, { backgroundColor: tintColor }]}
+                style={[styles.retryButton, { backgroundColor: actionButtonBackground }]}
                 onPress={loadFolders}
               >
-                <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+                <ThemedText style={[styles.retryButtonText, { color: actionButtonText }]}>
+                  Retry
+                </ThemedText>
               </TouchableOpacity>
             </ThemedView>
           ) : loading ? (

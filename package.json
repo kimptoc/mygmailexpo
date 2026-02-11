@@ -5,19 +5,21 @@
   "version": "54.0.35",
   "homepage": "https://kimptoc.github.io/mygmailexpo",
   "scripts": {
-    "start": "node ./scripts/generate-build-info.js && expo start",
+    "build:info": "node ./scripts/generate-build-info.js",
+    "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "node ./scripts/generate-build-info.js && expo start --web",
+    "android": "npm run build:info && expo run:android",
+    "ios": "npm run build:info && expo run:ios",
+    "web": "expo start --web",
     "lint": "expo lint",
     "draft": "npx eas-cli@latest workflow:run create-draft.yml",
     "development-builds": "npx eas-cli@latest workflow:run create-development-builds.yml",
     "deploy": "npx eas-cli@latest workflow:run deploy-to-production.yml",
-    "build:web": "WEB_BUILD=1 node ./scripts/generate-build-info.js && WEB_BUILD=1 expo export --platform web --clear",
+    "build:web": "WEB_BUILD=1 npm run build:info && WEB_BUILD=1 expo export --platform web --clear",
     "deploy:web": "npm run build:web && node ./scripts/deploy-web.js",
     "serve:local": "WEB_BUILD=1 npm run build:web && touch dist/.nojekyll && rm -rf /tmp/serve-test && mkdir -p /tmp/serve-test/mygmailexpo && cp -r dist/* /tmp/serve-test/mygmailexpo/ && npx serve /tmp/serve-test",
-    "test": "jest --config jest.config.node.js"
+    "test": "jest --config jest.config.node.js",
+    "eas-build-post-install": "npm run build:info"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

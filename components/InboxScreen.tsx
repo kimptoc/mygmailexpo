@@ -23,6 +23,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import FolderSelectionModal from '@/components/FolderSelectionModal';
 import BatchErrorModal from '@/components/BatchErrorModal';
 import ComposeEmailModal from '@/components/ComposeEmailModal';
+import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 import { useEmailSelection } from '@/hooks/useEmailSelection';
 
@@ -42,7 +43,10 @@ export function InboxScreen() {
   const { showToast } = useToast();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
+  const separatorColor = useThemeColor({}, 'separator');
+  const { tintColor, actionButtonBackground, actionButtonText, isTintWhite } = useActionButtonColors();
+  const selectionHeaderBackground = isTintWhite ? separatorColor : tintColor;
+  const selectionHeaderText = isTintWhite ? textColor : backgroundColor;
 
   const {
     selectedIds,
@@ -378,27 +382,27 @@ export function InboxScreen() {
       {/* Header */}
       {isSelectionMode ? (
         <>
-          <View style={[styles.header, styles.selectionHeader, { backgroundColor: tintColor }]}>
+          <View style={[styles.header, styles.selectionHeader, { backgroundColor: selectionHeaderBackground }]}>
             <View style={styles.headerLeft}>
               <TouchableOpacity onPress={clearSelection} style={styles.selectionActionButton}>
-                <IconSymbol name="xmark" size={iconSize} color={backgroundColor} />
+                <IconSymbol name="xmark" size={iconSize} color={selectionHeaderText} />
               </TouchableOpacity>
-              <Text style={[styles.headerTitle, { color: backgroundColor, fontSize: 20 }]}>
+              <Text style={[styles.headerTitle, { color: selectionHeaderText, fontSize: 20 }]}>
                 {selectionCount}
               </Text>
             </View>
             <View style={styles.headerActions}>
               {actionLoading ? (
-                <ActivityIndicator color={backgroundColor} style={{ marginRight: 16 }} />
+                <ActivityIndicator color={selectionHeaderText} style={{ marginRight: 16 }} />
               ) : (
                 <>
                   {showRemoveLabel && (
                     <TouchableOpacity onPress={handleRemoveLabelBatch} style={styles.selectionActionButton}>
-                      <IconSymbol name="tag.slash" size={iconSize} color={backgroundColor} />
+                      <IconSymbol name="tag.slash" size={iconSize} color={selectionHeaderText} />
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
-                    <IconSymbol name="folder" size={iconSize} color={backgroundColor} />
+                    <IconSymbol name="folder" size={iconSize} color={selectionHeaderText} />
                   </TouchableOpacity>
                 </>
               )}
@@ -454,10 +458,12 @@ export function InboxScreen() {
             {emailState.error}
           </ThemedText>
           <Pressable
-            style={[styles.retryButton, { backgroundColor: tintColor }]}
+            style={[styles.retryButton, { backgroundColor: actionButtonBackground }]}
             onPress={handleRefresh}
           >
-            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+            <ThemedText style={[styles.retryButtonText, { color: actionButtonText }]}>
+              Retry
+            </ThemedText>
           </Pressable>
           <Pressable
             style={[styles.secondaryButton, { borderColor: tintColor }]}

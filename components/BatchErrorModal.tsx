@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 interface BatchErrorModalProps {
   visible: boolean;
@@ -29,9 +30,9 @@ const BatchErrorModal: React.FC<BatchErrorModalProps> = ({
 }) => {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
   const separatorColor = useThemeColor({}, 'separator');
   const errorColor = useThemeColor({}, 'error');
+  const { actionButtonBackground, actionButtonText } = useActionButtonColors();
 
   const renderErrorItem = ({ item }: { item: { id: string, subject?: string, error: string } }) => (
     <View style={[styles.errorItem, { borderBottomColor: separatorColor }]}>
@@ -86,10 +87,12 @@ const BatchErrorModal: React.FC<BatchErrorModalProps> = ({
           <View style={styles.footer}>
             {onRetry && (
                <TouchableOpacity
-                style={[styles.button, { backgroundColor: tintColor }]}
+                style={[styles.button, { backgroundColor: actionButtonBackground }]}
                 onPress={onRetry}
               >
-                <ThemedText style={styles.buttonText}>Retry Failed</ThemedText>
+                <ThemedText style={[styles.buttonText, { color: actionButtonText }]}>
+                  Retry Failed
+                </ThemedText>
               </TouchableOpacity>
             )}
             <TouchableOpacity

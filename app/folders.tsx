@@ -17,6 +17,7 @@ import { GmailLabel } from '@/types/folder';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { buildFolderListItems, FolderListItem } from '@/utils/folder-list';
+import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 const MIN_COLUMN_WIDTH = 240;
 const COLUMN_GAP = 12;
@@ -27,9 +28,9 @@ const FolderSelectionScreen = () => {
   const { width } = useWindowDimensions();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
   const errorColor = useThemeColor({}, 'error');
   const [refreshing, setRefreshing] = React.useState(false);
+  const { tintColor, actionButtonBackground, actionButtonText } = useActionButtonColors();
 
   const availableWidth = width - 32;
   const columnCount = availableWidth >= MIN_COLUMN_WIDTH * 2 + COLUMN_GAP ? 2 : 1;
@@ -122,10 +123,12 @@ const FolderSelectionScreen = () => {
             {error}
           </ThemedText>
           <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: tintColor }]}
+            style={[styles.retryButton, { backgroundColor: actionButtonBackground }]}
             onPress={loadFolders}
           >
-            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+            <ThemedText style={[styles.retryButtonText, { color: actionButtonText }]}>
+              Retry
+            </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.secondaryButton, { borderColor: tintColor }]}

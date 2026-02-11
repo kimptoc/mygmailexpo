@@ -1,6 +1,7 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useIsTintWhite } from '@/hooks/use-tint-contrast';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -19,10 +20,11 @@ export function LoginScreen() {
   const tintColor = useThemeColor({}, 'tint');
   const errorColor = useThemeColor({}, 'error');
   const errorBackgroundColor = useThemeColor({}, 'errorBackground');
+  const isTintWhite = useIsTintWhite();
 
   // For the sign-in button text: if tint is white (dark mode), use background color for text
   // Otherwise use white text
-  const buttonTextColor = tintColor === '#fff' || tintColor === '#FFFFFF' ? backgroundColor : '#FFFFFF';
+  const buttonTextColor = isTintWhite ? backgroundColor : '#FFFFFF';
 
   const isLoading = authState.status === 'loading';
   const hasError = authState.status === 'error';
