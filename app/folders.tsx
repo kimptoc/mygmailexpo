@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,9 +13,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useFolders } from '@/hooks/useFolders';
-import { GmailLabel, RecentFolder } from '@/types/folder';
+import { GmailLabel } from '@/types/folder';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { buildFolderListItems, FolderListItem } from '@/utils/folder-list';
 
 const MIN_COLUMN_WIDTH = 240;
 const COLUMN_GAP = 12;
@@ -55,7 +56,16 @@ const FolderSelectionScreen = () => {
     router.push(`/folder/${folder.id}?name=${encodeURIComponent(folder.name)}`);
   };
 
-  const renderFolderItem = ({ item }: { item: GmailLabel }) => (
+  const listItems = useMemo(() => (
+    buildFolderListItems({
+      folders,
+      recentFolderIds: recentFolders.map(folder => folder.id),
+      columnCount,
+      recentLimit: 10,
+    })
+  ), [folders, recentFolders, columnCount]);
+
+  const renderFolderItem = (folder: GmailLabel, iconName: 'clock' | 'folder') => (
     <TouchableOpacity
       style={[
         styles.folderItem,
@@ -63,37 +73,36 @@ const FolderSelectionScreen = () => {
         columnCount > 1 && { width: columnWidth },
         { backgroundColor },
       ]}
-      onPress={() => handleSelectFolder(item)}
+      onPress={() => handleSelectFolder(folder)}
     >
       <View style={styles.folderIcon}>
-        <IconSymbol name="folder" size={24} color={tintColor} />
+        <IconSymbol name={iconName} size={24} color={tintColor} />
       </View>
-      <ThemedText style={styles.folderName}>{item.name}</ThemedText>
+      <ThemedText style={styles.folderName}>{folder.name}</ThemedText>
       <IconSymbol name="chevron.forward" size={20} color={textColor + '80'} />
     </TouchableOpacity>
   );
 
-  const renderRecentFolderItem = ({ item }: { item: RecentFolder }) => {
-    const folder = folders.find(f => f.id === item.id);
-    if (!folder) return null;
-
-    return (
-      <TouchableOpacity
-        style={[
-          styles.folderItem,
-          columnCount > 1 && styles.folderItemColumn,
-          columnCount > 1 && { width: columnWidth },
-          { backgroundColor },
-        ]}
-        onPress={() => handleSelectFolder(folder)}
-      >
-        <View style={styles.folderIcon}>
-          <IconSymbol name="clock" size={24} color={tintColor} />
+  const renderListItem = ({ item }: { item: FolderListItem }) => {
+    if (item.type === 'header') {
+      return (
+        <View
+          style={[
+            styles.sectionHeaderRow,
+            { width: availableWidth },
+            columnCount > 1 && styles.sectionHeaderFull,
+          ]}
+        >
+          <ThemedText style={styles.sectionTitle}>{item.title}</ThemedText>
         </View>
-        <ThemedText style={styles.folderName}>{folder.name}</ThemedText>
-        <IconSymbol name="chevron.forward" size={20} color={textColor + '80'} />
-      </TouchableOpacity>
-    );
+      );
+    }
+
+    if (item.type === 'spacer') {
+      return <View style={[styles.spacerItem, columnCount > 1 && { width: columnWidth }]} />;
+    }
+
+    return renderFolderItem(item.folder, item.icon);
   };
 
   return (
@@ -127,45 +136,30 @@ const FolderSelectionScreen = () => {
             </ThemedText>
           </TouchableOpacity>
         </ThemedView>
+      ) : loading && folders.length === 0 ? (
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={tintColor} />
+          <ThemedText style={{ marginLeft: 8 }}>Loading folders...</ThemedText>
+        </ThemedView>
       ) : (
-        <>
-          {recentFolders.length > 0 && (
-            <View style={styles.sectionContainer}>
-              <ThemedText style={styles.sectionTitle}>Recent Folders</ThemedText>
-              <FlatList
-                data={recentFolders}
-                renderItem={renderRecentFolderItem}
-                keyExtractor={(item) => item.id}
-                key={`recent-${columnCount}`}
-                numColumns={columnCount}
-                columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
-                scrollEnabled={false}
-              />
-            </View>
-          )}
-
-          <View style={styles.sectionContainer}>
-            <ThemedText style={styles.sectionTitle}>All Folders</ThemedText>
-            {loading && folders.length === 0 ? (
-              <ThemedView style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={tintColor} />
-                <ThemedText style={{ marginLeft: 8 }}>Loading folders...</ThemedText>
-              </ThemedView>
-            ) : (
-              <FlatList
-                data={folders}
-                renderItem={renderFolderItem}
-                keyExtractor={(item) => item.id}
-                key={`all-${columnCount}`}
-                numColumns={columnCount}
-                columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
-                refreshControl={
-                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-              />
-            )}
-          </View>
-        </>
+        <FlatList
+          data={listItems}
+          renderItem={renderListItem}
+          keyExtractor={(item) =>
+            item.type === 'header'
+              ? `header-${item.id}`
+              : item.type === 'spacer'
+                ? `spacer-${item.id}`
+                : `folder-${item.id}`
+          }
+          key={`folders-${columnCount}`}
+          numColumns={columnCount}
+          columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        />
       )}
     </ThemedView>
   );
@@ -194,17 +188,27 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40, // Same width as backButton for alignment
   },
-  sectionContainer: {
-    marginBottom: 24,
-    paddingHorizontal: 16,
-  },
   columnWrapper: {
     justifyContent: 'space-between',
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  sectionHeaderRow: {
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  sectionHeaderFull: {
+    flexBasis: '100%',
+    alignSelf: 'flex-start',
+  },
+  spacerItem: {
+    height: 0,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 12,
     marginLeft: 8,
   },
   folderItem: {

@@ -2,7 +2,7 @@
 
 This document outlines the work needed to achieve feature parity between the Expo/React Native app and the native Android app.
 
-**Last Updated:** After commit `53019f0` (feat: allow selecting emails by clicking sender avatar)
+**Last Updated:** February 11, 2026 (folder list rework + tests)
 
 ---
 
@@ -90,11 +90,13 @@ This document outlines the work needed to achieve feature parity between the Exp
 
 ## What's Left To Do
 
-### Folder Picker Rework (Planned)
+### Folder Picker Rework (Complete)
 
-1. Update recent folder history to store the last 10 items in `hooks/useFolders.ts`.
-2. Add responsive 2-column layout for folder lists (Recent + All) when width allows, using `numColumns`, `columnWrapperStyle`, and per-item widths in `components/FolderSelectionModal.tsx` and `app/folders.tsx`.
-3. Verify the folder picker renders correctly for view selection and move actions (Inbox header, selection actions, and email detail move) on phone vs tablet/web widths.
+1. ✅ Recent folders capped at 10 in list rendering (UI list builder; data layer unchanged).
+2. ✅ Single scrollable list with Recent then All, responsive 2-column layout.
+3. ✅ Headers align to left column with spacer insertion when in 2-column mode.
+4. ✅ Shared list builder to reduce duplication: `utils/folder-list.ts`
+5. ✅ Tests added for list construction: `utils/folder-list.test.ts`
 
 ### Action Buttons Consistency - COMPLETE
 
@@ -311,6 +313,9 @@ This project currently has no unit tests. Adding them will improve stability and
     -   [x] **`toggleSelection`**: Test that it correctly adds/removes IDs and updates `isSelectionMode`.
     -   [x] **`clearSelection`**: Test that it resets the state.
     -   [x] **`selectAll`**: Test that it correctly selects all provided IDs.
+
+-   **File:** `utils/folder-list.ts`
+    -   [x] **`buildFolderListItems`**: Tests for recent cap, spacer insertion, and search filtering.
 
 #### API Service Logic (Medium Priority)
 

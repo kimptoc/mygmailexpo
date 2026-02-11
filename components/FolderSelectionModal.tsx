@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -14,8 +14,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useFolders } from '@/hooks/useFolders';
-import { GmailLabel, RecentFolder } from '@/types/folder';
+import { GmailLabel } from '@/types/folder';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { buildFolderListItems, FolderListItem } from '@/utils/folder-list';
 
 interface FolderSelectionModalProps {
   visible: boolean;
@@ -71,40 +72,24 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
     setFilteredFolders(result);
   }, [folders, searchQuery]);
 
+  const listItems = useMemo(() => (
+    buildFolderListItems({
+      folders,
+      recentFolderIds: recentFolders.map(folder => folder.id),
+      filteredFolders,
+      searchQuery,
+      columnCount,
+      recentLimit: 10,
+    })
+  ), [filteredFolders, folders, recentFolders, searchQuery, columnCount]);
+
   const handleSelectFolder = (folder: GmailLabel) => {
     addToRecentFolders(folder);
     onSelectFolder(folder);
     onClose();
   };
 
-  const renderFolderItem = ({ item }: { item: GmailLabel }) => {
-    const isSelected = currentFolderId === item.id;
-    
-    return (
-      <TouchableOpacity
-        style={[
-          styles.folderItem,
-          columnCount > 1 && styles.folderItemColumn,
-          columnCount > 1 && { width: columnWidth },
-          { backgroundColor: isSelected ? selectionColor : backgroundColor },
-        ]}
-        onPress={() => handleSelectFolder(item)}
-      >
-        <View style={styles.folderIcon}>
-          <IconSymbol name="folder" size={20} color={textColor} />
-        </View>
-        <ThemedText style={styles.folderName}>{item.name}</ThemedText>
-        {isSelected && (
-          <IconSymbol name="checkmark" size={20} color={tintColor} />
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  const renderRecentFolderItem = ({ item }: { item: RecentFolder }) => {
-    const folder = folders.find(f => f.id === item.id);
-    if (!folder) return null;
-
+  const renderFolderItem = (folder: GmailLabel, iconName: 'clock' | 'folder') => {
     const isSelected = currentFolderId === folder.id;
     
     return (
@@ -118,7 +103,7 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
         onPress={() => handleSelectFolder(folder)}
       >
         <View style={styles.folderIcon}>
-          <IconSymbol name="clock" size={20} color={textColor} />
+          <IconSymbol name={iconName} size={20} color={textColor} />
         </View>
         <ThemedText style={styles.folderName}>{folder.name}</ThemedText>
         {isSelected && (
@@ -126,6 +111,28 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
         )}
       </TouchableOpacity>
     );
+  };
+
+  const renderListItem = ({ item }: { item: FolderListItem }) => {
+    if (item.type === 'header') {
+      return (
+        <View
+          style={[
+            styles.sectionHeaderRow,
+            { width: availableWidth },
+            columnCount > 1 && styles.sectionHeaderFull,
+          ]}
+        >
+          <ThemedText style={styles.sectionTitle}>{item.title}</ThemedText>
+        </View>
+      );
+    }
+
+    if (item.type === 'spacer') {
+      return <View style={[styles.spacerItem, columnCount > 1 && { width: columnWidth }]} />;
+    }
+
+    return renderFolderItem(item.folder, item.icon);
   };
 
   return (
@@ -179,36 +186,22 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
               <ThemedText>Loading folders...</ThemedText>
             </View>
           ) : (
-            <>
-              {recentFolders.length > 0 && (
-                <View style={styles.sectionContainer}>
-                  <ThemedText style={styles.sectionTitle}>Recent Folders</ThemedText>
-                  <FlatList
-                    data={recentFolders}
-                    renderItem={renderRecentFolderItem}
-                    keyExtractor={(item) => item.id}
-                    key={`recent-${columnCount}`}
-                    numColumns={columnCount}
-                    columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
-                    scrollEnabled={false}
-                  />
-                </View>
-              )}
-
-              <View style={[styles.sectionContainer, styles.allFoldersSection]}>
-                <ThemedText style={styles.sectionTitle}>All Folders</ThemedText>
-                <FlatList
-                  data={filteredFolders}
-                  renderItem={renderFolderItem}
-                  keyExtractor={(item) => item.id}
-                  key={`all-${columnCount}`}
-                  numColumns={columnCount}
-                  columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
-                  showsVerticalScrollIndicator={false}
-                  style={styles.folderList}
-                />
-              </View>
-            </>
+            <FlatList
+              data={listItems}
+              renderItem={renderListItem}
+              keyExtractor={(item) =>
+                item.type === 'header'
+                  ? `header-${item.id}`
+                  : item.type === 'spacer'
+                    ? `spacer-${item.id}`
+                    : `folder-${item.id}`
+              }
+              key={`folders-${columnCount}`}
+              numColumns={columnCount}
+              columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
+              showsVerticalScrollIndicator={false}
+              style={styles.folderList}
+            />
           )}
         </Pressable>
       </Pressable>
@@ -260,23 +253,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 0,
   },
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  allFoldersSection: {
-    flex: 1,
-    minHeight: 0,
-  },
   folderList: {
     flex: 1,
   },
   columnWrapper: {
     justifyContent: 'space-between',
   },
+  sectionHeaderRow: {
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  sectionHeaderFull: {
+    flexBasis: '100%',
+    alignSelf: 'flex-start',
+  },
+  spacerItem: {
+    height: 0,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
     paddingLeft: 8,
   },
   folderItem: {
