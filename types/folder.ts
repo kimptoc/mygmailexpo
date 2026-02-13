@@ -4,6 +4,9 @@ export interface GmailLabel {
   messageListVisibility?: string;
   labelListVisibility?: string;
   type?: string;
+  // Flattened color fields used throughout the app.
+  backgroundColor?: string;
+  textColor?: string;
   color?: {
     textColor: string;
     backgroundColor: string;
