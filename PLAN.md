@@ -2,7 +2,7 @@
 
 This document outlines the work needed to achieve feature parity between the Expo/React Native app and the native Android app.
 
-**Last Updated:** February 11, 2026 (folder list rework + tests)
+**Last Updated:** February 13, 2026 (batch action progress bar + tests)
 
 ---
 
@@ -60,6 +60,7 @@ This document outlines the work needed to achieve feature parity between the Exp
 | 4.3 Error Handling | ✅ Improved | Alert.alert() for user-facing errors |
 | 4.4 Dark Mode | ✅ Done | Theme colors used, including separators and errors |
 | 4.5 Dark Mode Contrast | ✅ Improved | Fixed white-tint button text/background contrast in error/selection states |
+| 4.6 Batch Action Progress | ✅ Done | Animated progress bar + `Processing X/Y` during remove/move actions |
 
 **Files:** `components/EmailItemSkeleton.tsx`
 
@@ -72,6 +73,7 @@ This document outlines the work needed to achieve feature parity between the Exp
 - Error messages are now selectable and include quick actions (Retry + Sign in again) across inbox, folders, folder detail, and email detail screens.
 - Tests added for token refresh helper (web) and auth retry logic.
 - Gmail label actions now use low-concurrency per-email updates with exponential backoff to avoid Gmail's "too many concurrent requests" errors while retaining per-email failure details. Tests updated.
+- Batch remove/move actions now show per-item progress in selection mode with a smooth animated progress bar; unit tests added for progress callback success/failure counting.
 
 ---
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,15 @@ import {
   Pressable,
   TouchableOpacity,
   useWindowDimensions,
+  Animated,
+  Easing,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useToast } from '@/contexts/ToastContext';
-import { useGmailApi, BatchResult } from '@/services/gmailApi';
+import { useGmailApi, BatchProgress } from '@/services/gmailApi';
 import { GmailLabel } from '@/types/folder';
 import { Email, EmailListState } from '@/types/gmail';
 import { EmailItem } from '@/components/EmailItem';
@@ -56,7 +58,6 @@ export function InboxScreen() {
     enterSelectionMode,
     selectionCount,
     selectAll,
-    setSelectedIds,
   } = useEmailSelection();
 
   const [emailState, setEmailState] = useState<EmailListState>({
@@ -77,10 +78,25 @@ export function InboxScreen() {
     action: 'remove' | 'move';
     targetLabelId?: string;
   } | null>(null);
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
   const [labelsMap, setLabelsMap] = useState<Record<string, GmailLabel>>({});
   const [showComposeModal, setShowComposeModal] = useState(false);
+  const progressAnimation = useRef(new Animated.Value(0)).current;
 
   const userEmail = authState.status === 'authenticated' ? authState.userEmail : '';
+  const progressRatio =
+    actionLoading && batchProgress && batchProgress.total > 0
+      ? batchProgress.processed / batchProgress.total
+      : 0;
+
+  useEffect(() => {
+    Animated.timing(progressAnimation, {
+      toValue: progressRatio,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [progressAnimation, progressRatio]);
 
   const loadLabels = useCallback(async () => {
     try {
@@ -192,8 +208,16 @@ export function InboxScreen() {
     if (!currentFolder) return;
     setActionLoading(true);
     const ids = Array.isArray(idsToProcess) ? idsToProcess : Array.from(selectedIds);
+    setBatchProgress({
+      processed: 0,
+      total: ids.length,
+      succeeded: 0,
+      failed: 0,
+    });
     try {
-      const result = await removeLabelFromEmails(ids, currentFolder.id);
+      const result = await removeLabelFromEmails(ids, currentFolder.id, (progress) => {
+        setBatchProgress(progress);
+      });
       if (result.failed.length > 0) {
         setBatchErrorDetails({
           succeededCount: result.succeeded.length,
@@ -217,14 +241,23 @@ export function InboxScreen() {
       showToast(error.message || 'Failed to remove labels', 'error');
     } finally {
       setActionLoading(false);
+      setBatchProgress(null);
     }
   }, [selectedIds, currentFolder, removeLabelFromEmails, clearSelection, handleRefresh, showToast, emailState.emails]);
 
   const handleMoveToFolder = useCallback(async (targetLabelId: string, idsToProcess?: string[]) => {
     setActionLoading(true);
     const ids = Array.isArray(idsToProcess) ? idsToProcess : Array.from(selectedIds);
+    setBatchProgress({
+      processed: 0,
+      total: ids.length,
+      succeeded: 0,
+      failed: 0,
+    });
     try {
-      const result = await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX');
+      const result = await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX', (progress) => {
+        setBatchProgress(progress);
+      });
 
       if (result.failed.length > 0) {
         setBatchErrorDetails({
@@ -250,6 +283,7 @@ export function InboxScreen() {
       showToast(error.message || 'Failed to move emails', 'error');
     } finally {
       setActionLoading(false);
+      setBatchProgress(null);
     }
   }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast, emailState.emails]);
 
@@ -424,6 +458,27 @@ export function InboxScreen() {
               </Text>
             </Pressable>
           </View>
+          {actionLoading && batchProgress && batchProgress.total > 0 && (
+            <View style={styles.progressContainer}>
+              <Text style={[styles.progressText, { color: textColor + 'CC' }]}>
+                Processing {batchProgress.processed}/{batchProgress.total}
+              </Text>
+              <View style={[styles.progressTrack, { backgroundColor: separatorColor }]}>
+                <Animated.View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: progressAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                      backgroundColor: tintColor,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
         </>
       ) : (
         <View style={[styles.header, { borderBottomColor: textColor + '20' }]}>
@@ -606,6 +661,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingBottom: 8,
+  },
+  progressContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  progressText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
   },
   selectionBarButton: {
     flexDirection: 'row',

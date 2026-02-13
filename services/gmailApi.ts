@@ -37,6 +37,13 @@ export interface BatchResult {
   failed: { id: string, error: string }[];
 }
 
+export interface BatchProgress {
+  processed: number;
+  total: number;
+  succeeded: number;
+  failed: number;
+}
+
 export class GmailApiService {
   private static instance: GmailApiService;
   private baseUrl = 'https://www.googleapis.com/gmail/v1/users/me';
@@ -270,22 +277,28 @@ export class GmailApiService {
     }
   }
 
-  async removeLabelFromEmails(accessToken: string, emailIds: string[], labelId: string): Promise<BatchResult> {
+  async removeLabelFromEmails(
+    accessToken: string,
+    emailIds: string[],
+    labelId: string,
+    onProgress?: (progress: BatchProgress) => void
+  ): Promise<BatchResult> {
     return this.processEmailModifications(accessToken, emailIds, () => ({
       removeLabelIds: [labelId],
-    }));
+    }), onProgress);
   }
 
   async moveEmailsToLabel(
     accessToken: string,
     emailIds: string[],
     targetLabelId: string,
-    currentLabelId: string
+    currentLabelId: string,
+    onProgress?: (progress: BatchProgress) => void
   ): Promise<BatchResult> {
     return this.processEmailModifications(accessToken, emailIds, () => ({
       addLabelIds: [targetLabelId],
       removeLabelIds: [currentLabelId],
-    }));
+    }), onProgress);
   }
 
   async sendEmail(accessToken: string, raw: string): Promise<void> {
@@ -308,11 +321,14 @@ export class GmailApiService {
   private async processEmailModifications(
     accessToken: string,
     emailIds: string[],
-    buildBody: (id: string) => Record<string, any>
+    buildBody: (id: string) => Record<string, any>,
+    onProgress?: (progress: BatchProgress) => void
   ): Promise<BatchResult> {
     const succeeded: string[] = [];
     const failed: { id: string; error: string }[] = [];
     const workers: Promise<void>[] = [];
+    const total = emailIds.length;
+    let processed = 0;
 
     for (let i = 0; i < emailIds.length; i += this.MAX_CONCURRENCY) {
       workers.length = 0;
@@ -341,6 +357,13 @@ export class GmailApiService {
             } else {
               succeeded.push(id);
             }
+            processed += 1;
+            onProgress?.({
+              processed,
+              total,
+              succeeded: succeeded.length,
+              failed: failed.length,
+            });
           })()
         );
       }
@@ -406,19 +429,24 @@ export const useGmailApi = () => {
     return withAuthRetry((token) => GmailApiService.getInstance().markAsRead(token, emailId));
   };
 
-  const removeLabelFromEmails = async (emailIds: string[], labelId: string): Promise<BatchResult> => {
+  const removeLabelFromEmails = async (
+    emailIds: string[],
+    labelId: string,
+    onProgress?: (progress: BatchProgress) => void
+  ): Promise<BatchResult> => {
     return withAuthRetry((token) =>
-      GmailApiService.getInstance().removeLabelFromEmails(token, emailIds, labelId)
+      GmailApiService.getInstance().removeLabelFromEmails(token, emailIds, labelId, onProgress)
     );
   };
 
   const moveEmailsToLabel = async (
     emailIds: string[],
     targetLabelId: string,
-    currentLabelId: string
+    currentLabelId: string,
+    onProgress?: (progress: BatchProgress) => void
   ): Promise<BatchResult> => {
     return withAuthRetry((token) =>
-      GmailApiService.getInstance().moveEmailsToLabel(token, emailIds, targetLabelId, currentLabelId)
+      GmailApiService.getInstance().moveEmailsToLabel(token, emailIds, targetLabelId, currentLabelId, onProgress)
     );
   };
 

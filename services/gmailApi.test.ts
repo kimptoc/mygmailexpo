@@ -87,3 +87,69 @@ describe('GmailApiService sendEmail', () => {
     );
   });
 });
+
+describe('GmailApiService batch progress', () => {
+  const fetchWithBackoffMock = fetchWithBackoff as jest.MockedFunction<typeof fetchWithBackoff>;
+
+  beforeEach(() => {
+    fetchWithBackoffMock.mockReset();
+  });
+
+  it('reports progress for each processed email', async () => {
+    fetchWithBackoffMock
+      .mockResolvedValueOnce({ ok: true, status: 200 } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200 } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200 } as Response);
+
+    const progressEvents: Array<{ processed: number; total: number; succeeded: number; failed: number }> = [];
+
+    const result = await GmailApiService.getInstance().removeLabelFromEmails(
+      'token-123',
+      ['email-1', 'email-2', 'email-3'],
+      'INBOX',
+      (progress) => progressEvents.push(progress)
+    );
+
+    expect(result.succeeded).toHaveLength(3);
+    expect(result.failed).toHaveLength(0);
+    expect(progressEvents).toEqual([
+      { processed: 1, total: 3, succeeded: 1, failed: 0 },
+      { processed: 2, total: 3, succeeded: 2, failed: 0 },
+      { processed: 3, total: 3, succeeded: 3, failed: 0 },
+    ]);
+  });
+
+  it('includes failures in progress counts', async () => {
+    fetchWithBackoffMock
+      .mockResolvedValueOnce({ ok: true, status: 200 } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: jest.fn().mockResolvedValue({ error: { message: 'Bad request' } }),
+      } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200 } as Response);
+
+    const progressEvents: Array<{ processed: number; total: number; succeeded: number; failed: number }> = [];
+
+    const result = await GmailApiService.getInstance().moveEmailsToLabel(
+      'token-123',
+      ['email-1', 'email-2', 'email-3'],
+      'TARGET',
+      'INBOX',
+      (progress) => progressEvents.push(progress)
+    );
+
+    expect(result.succeeded).toHaveLength(2);
+    expect(result.failed).toEqual([{ id: 'email-2', error: 'Bad request' }]);
+    expect(progressEvents).toHaveLength(3);
+    expect(progressEvents.every((event) => event.total === 3)).toBe(true);
+    expect(progressEvents.map((event) => event.processed)).toEqual([1, 2, 3]);
+    expect(progressEvents.some((event) => event.failed >= 1)).toBe(true);
+    expect(progressEvents[2]).toEqual({
+      processed: 3,
+      total: 3,
+      succeeded: 2,
+      failed: 1,
+    });
+  });
+});
