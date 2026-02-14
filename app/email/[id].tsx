@@ -148,6 +148,10 @@ const EmailDetailScreen = () => {
 
   const htmlContent = useMemo(() => {
     if (!email?.htmlBody) return null;
+    const readableTextColor = isDark ? '#E8EAED' : textColor;
+    const readableBgColor = isDark ? '#111418' : 'transparent';
+    const fallbackDarkText = '#E8EAED';
+    const fallbackLightText = '#202124';
 
     // Basic responsive wrapper for HTML content
     return `
@@ -160,11 +164,14 @@ const EmailDetailScreen = () => {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               font-size: 16px;
               line-height: 1.5;
-              color: ${textColor};
-              background-color: ${isDark ? backgroundColor : 'transparent'};
+              color: ${readableTextColor};
+              background-color: ${readableBgColor};
               margin: 0;
               padding: 0;
               word-wrap: break-word;
+            }
+            html {
+              background-color: ${readableBgColor};
             }
             img {
               max-width: 100%;
@@ -180,10 +187,98 @@ const EmailDetailScreen = () => {
         </head>
         <body>
           ${email.htmlBody}
+          <script>
+            (function () {
+              var isDarkMode = ${isDark ? 'true' : 'false'};
+              var minContrast = 3;
+              var linkColor = ${JSON.stringify(tintColor)};
+              var darkText = ${JSON.stringify(fallbackDarkText)};
+              var lightText = ${JSON.stringify(fallbackLightText)};
+
+              function parseRgb(value) {
+                if (!value) return null;
+                var match = value.match(/rgba?\\(([^)]+)\\)/i);
+                if (!match) return null;
+                var parts = match[1].split(',').map(function (p) { return parseFloat(p.trim()); });
+                if (parts.length < 3 || parts.some(function (n) { return Number.isNaN(n); })) return null;
+                return [parts[0], parts[1], parts[2], parts.length > 3 ? parts[3] : 1];
+              }
+
+              function srgbToLinear(c) {
+                var x = c / 255;
+                return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+              }
+
+              function luminance(rgb) {
+                return 0.2126 * srgbToLinear(rgb[0]) + 0.7152 * srgbToLinear(rgb[1]) + 0.0722 * srgbToLinear(rgb[2]);
+              }
+
+              function contrastRatio(fg, bg) {
+                var l1 = luminance(fg);
+                var l2 = luminance(bg);
+                var lighter = Math.max(l1, l2);
+                var darker = Math.min(l1, l2);
+                return (lighter + 0.05) / (darker + 0.05);
+              }
+
+              function getEffectiveBackground(element) {
+                var current = element;
+                while (current && current !== document.documentElement) {
+                  var bg = parseRgb(window.getComputedStyle(current).backgroundColor);
+                  if (bg && bg[3] > 0.01) return bg;
+                  current = current.parentElement;
+                }
+                return isDarkMode ? [17, 20, 24, 1] : [255, 255, 255, 1];
+              }
+
+              function shouldSkipElement(element) {
+                if (!element || !element.tagName) return true;
+                var tag = element.tagName.toUpperCase();
+                return ['SCRIPT', 'STYLE', 'NOSCRIPT', 'IMG', 'SVG', 'PATH', 'CANVAS', 'VIDEO', 'IFRAME'].indexOf(tag) !== -1;
+              }
+
+              function normalizeContrast() {
+                try {
+                  var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+                  var seen = new Set();
+                  while (walker.nextNode()) {
+                    var node = walker.currentNode;
+                    if (!node || !node.nodeValue || !node.nodeValue.trim()) continue;
+                    var element = node.parentElement;
+                    if (!element || seen.has(element) || shouldSkipElement(element)) continue;
+                    seen.add(element);
+
+                    var fg = parseRgb(window.getComputedStyle(element).color);
+                    if (!fg) continue;
+                    var bg = getEffectiveBackground(element);
+                    var ratio = contrastRatio(fg, bg);
+                    if (ratio >= minContrast) continue;
+
+                    var bgLum = luminance(bg);
+                    if (element.tagName.toUpperCase() === 'A') {
+                      element.style.setProperty('color', linkColor, 'important');
+                      element.style.setProperty('text-decoration', 'underline', 'important');
+                    } else {
+                      element.style.setProperty('color', bgLum > 0.45 ? lightText : darkText, 'important');
+                    }
+                  }
+                } catch (e) {
+                  // best-effort readability pass
+                }
+              }
+
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', normalizeContrast, { once: true });
+              } else {
+                normalizeContrast();
+              }
+              setTimeout(normalizeContrast, 80);
+            })();
+          </script>
         </body>
       </html>
     `;
-  }, [email, textColor, tintColor, backgroundColor, isDark]);
+  }, [email, textColor, tintColor, isDark]);
 
   if (loading) {
     return (
