@@ -2,7 +2,7 @@
 
 This document outlines the work needed to achieve feature parity between the Expo/React Native app and the native Android app.
 
-**Last Updated:** February 15, 2026 (web email links open in new tab)
+**Last Updated:** February 15, 2026 (web auth refresh hardening + tests)
 
 ---
 
@@ -63,6 +63,7 @@ This document outlines the work needed to achieve feature parity between the Exp
 | 4.6 Batch Action Progress | ✅ Done | Animated progress bar + `Processing X/Y` during remove/move actions |
 | 4.7 Email HTML Readability | ✅ Improved | Contrast-aware text normalization for low-contrast email content in dark/light contexts |
 | 4.8 Web Email Link Behavior | ✅ Done | HTML email links open in a new browser tab (`target=_blank`, `rel=noopener noreferrer`) |
+| 4.9 Web Auth Session Longevity | ✅ Improved | Conditional consent prompt, throttled event refresh, in-flight dedupe, validated restore flow |
 
 **Files:** `components/EmailItemSkeleton.tsx`
 
@@ -78,6 +79,7 @@ This document outlines the work needed to achieve feature parity between the Exp
 - Batch remove/move actions now show per-item progress in selection mode with a smooth animated progress bar; unit tests added for progress callback success/failure counting.
 - Email detail HTML rendering now applies a contrast-aware readability pass to fix both dark-on-dark and light-on-light message content while preserving link visibility.
 - Web email rendering now forces anchor links to open in a new tab for safer in-app navigation flow on browser deployments.
+- Web auth now restores sessions with refresh/validation-first logic (avoids stale-token flash), throttles focus/visibility refresh bursts, deduplicates concurrent refreshes, and includes helper tests for refresh-throttle + restore decisions.
 
 ---
 

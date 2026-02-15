@@ -1,11 +1,17 @@
 import { AuthState } from '@/types/gmail';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import { refreshAccessTokenWithToken } from './authRefresh.web';
+import {
+  EVENT_REFRESH_GUARD_MS,
+  restoreWebSession,
+  shouldRequestConsentPrompt,
+  shouldRunEventRefresh,
+} from './authSession.web';
 
 // Required for web browser to close after auth
 WebBrowser.maybeCompleteAuthSession();
@@ -47,6 +53,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>({ status: 'unauthenticated' });
   const AUTH_STORAGE_KEY = '@auth_session';
   const REFRESH_TOKEN_KEY = '@refresh_token';
+  const REFRESH_INTERVAL_MS = 45 * 60 * 1000;
+  const authStateRef = useRef<AuthState>(authState);
+  const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
+  const lastRefreshAttemptMsRef = useRef(0);
 
   // Fixed redirect URI - must match Google Cloud Console exactly
   const redirectUri = (() => {
@@ -69,6 +79,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     tokenEndpoint: 'https://oauth2.googleapis.com/token',
   };
 
+  const hasStoredRefreshToken = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return !!window.localStorage.getItem(REFRESH_TOKEN_KEY);
+  }, [REFRESH_TOKEN_KEY]);
+
+  const shouldPromptConsent = shouldRequestConsentPrompt(hasStoredRefreshToken);
+
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId: webClientId,
@@ -76,9 +93,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       redirectUri,
       responseType: AuthSession.ResponseType.Code,
       usePKCE: true,
+      extraParams: {
+        access_type: 'offline',
+        include_granted_scopes: 'true',
+        ...(shouldPromptConsent ? { prompt: 'consent' } : {}),
+      },
     },
     discovery
   );
+
+  useEffect(() => {
+    authStateRef.current = authState;
+  }, [authState]);
 
   useEffect(() => {
     if (request) {
@@ -96,58 +122,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const checkStoredSession = async () => {
     try {
       const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) {
-        const { accessToken, userEmail } = JSON.parse(stored);
+      if (!stored) return;
 
-        // Validate token by attempting to fetch user info
-        try {
+      setAuthState({ status: 'loading' });
+      const parsedStoredSession = JSON.parse(stored);
+      const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+
+      const result = await restoreWebSession({
+        storedSession: parsedStoredSession,
+        refreshToken,
+        refreshAccessToken: (token) =>
+          refreshAccessTokenWithToken(token, webClientId, webClientSecret),
+        validateAccessToken: async (accessToken) => {
           const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
+          return res.ok;
+        },
+      });
 
-          if (res.ok) {
-            setAuthState({
-              status: 'authenticated',
-              userEmail,
-              accessToken,
-            });
-          } else {
-            // Token expired or invalid - try to refresh
-            console.log('Access token invalid, attempting refresh...');
-            const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
-
-            if (refreshToken) {
-              const newAccessToken = await refreshAccessTokenWithToken(refreshToken, webClientId, webClientSecret);
-              if (newAccessToken) {
-                // Update stored session with new access token
-                await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
-                  accessToken: newAccessToken,
-                  userEmail,
-                }));
-                setAuthState({
-                  status: 'authenticated',
-                  userEmail,
-                  accessToken: newAccessToken,
-                });
-                return;
-              }
-            }
-
-            // Refresh failed or no refresh token - clear session
-            await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
-            await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
-            setAuthState({ status: 'unauthenticated' });
-          }
-        } catch {
-          // Network error or failed to validate
-          // For safety, clear session if we can't validate
+      if (result.kind === 'authenticated') {
+        setAuthState({
+          status: 'authenticated',
+          userEmail: result.userEmail,
+          accessToken: result.accessToken,
+        });
+        if (result.persistUpdatedToken) {
+          await AsyncStorage.setItem(
+            AUTH_STORAGE_KEY,
+            JSON.stringify({
+              accessToken: result.accessToken,
+              userEmail: result.userEmail,
+            })
+          );
+        }
+      } else {
+        setAuthState({ status: 'unauthenticated' });
+        if (result.clearStoredSession) {
           await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
           await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
-          setAuthState({ status: 'unauthenticated' });
         }
       }
     } catch (error) {
       console.error('Failed to load session', error);
+      setAuthState({ status: 'unauthenticated' });
     }
   };
 
@@ -283,24 +301,74 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [authState]);
 
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
-    if (authState.status !== 'authenticated') return null;
+    const currentState = authStateRef.current;
+    if (currentState.status !== 'authenticated') return null;
 
-    const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
-    if (!refreshToken) return null;
-
-    const newAccessToken = await refreshAccessTokenWithToken(refreshToken, webClientId, webClientSecret);
-    if (newAccessToken) {
-      setAuthState((prev) => {
-        if (prev.status !== 'authenticated') return prev;
-        return { ...prev, accessToken: newAccessToken };
-      });
-      await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
-        accessToken: newAccessToken,
-        userEmail: authState.userEmail,
-      }));
+    if (refreshInFlightRef.current) {
+      return refreshInFlightRef.current;
     }
-    return newAccessToken;
-  }, [authState]);
+
+    refreshInFlightRef.current = (async () => {
+      const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!refreshToken) return null;
+
+      const newAccessToken = await refreshAccessTokenWithToken(refreshToken, webClientId, webClientSecret);
+      if (newAccessToken) {
+        setAuthState((prev) => {
+          if (prev.status !== 'authenticated') return prev;
+          return { ...prev, accessToken: newAccessToken };
+        });
+        await AsyncStorage.setItem(
+          AUTH_STORAGE_KEY,
+          JSON.stringify({
+            accessToken: newAccessToken,
+            userEmail: currentState.userEmail,
+          })
+        );
+      }
+      return newAccessToken;
+    })();
+
+    try {
+      return await refreshInFlightRef.current;
+    } finally {
+      refreshInFlightRef.current = null;
+    }
+  }, [AUTH_STORAGE_KEY, REFRESH_TOKEN_KEY]);
+
+  useEffect(() => {
+    if (authState.status !== 'authenticated') return;
+
+    const refreshNow = (trigger: 'event' | 'interval') => {
+      if (trigger === 'event') {
+        const now = Date.now();
+        if (!shouldRunEventRefresh(now, lastRefreshAttemptMsRef.current, EVENT_REFRESH_GUARD_MS)) {
+          return;
+        }
+        lastRefreshAttemptMsRef.current = now;
+      }
+
+      refreshAccessToken().catch((error) => {
+        console.warn('Proactive token refresh failed:', error);
+      });
+    };
+
+    const intervalId = setInterval(() => refreshNow('interval'), REFRESH_INTERVAL_MS);
+
+    const onWindowFocus = () => refreshNow('event');
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshNow('event');
+    };
+
+    window.addEventListener('focus', onWindowFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', onWindowFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [authState.status, refreshAccessToken]);
 
   return (
     <AuthContext.Provider value={{ authState, signIn, signOut, getAccessToken, refreshAccessToken }}>
