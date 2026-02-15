@@ -159,6 +159,7 @@ const EmailDetailScreen = () => {
       <html>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <base target="_blank">
           <style>
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -239,6 +240,11 @@ const EmailDetailScreen = () => {
 
               function normalizeContrast() {
                 try {
+                  document.querySelectorAll('a[href]').forEach(function (anchor) {
+                    anchor.setAttribute('target', '_blank');
+                    anchor.setAttribute('rel', 'noopener noreferrer');
+                  });
+
                   var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
                   var seen = new Set();
                   while (walker.nextNode()) {
