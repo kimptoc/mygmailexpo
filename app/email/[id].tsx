@@ -28,7 +28,7 @@ import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
   const { showToast } = useToast();
-  const { width } = useWindowDimensions();
+  const { width, height: windowHeight } = useWindowDimensions();
   const isLargeScreen = width > 600;
   const { signIn } = useAuth();
   const { 
@@ -44,7 +44,8 @@ const EmailDetailScreen = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
-  const [webViewHeight, setWebViewHeight] = useState(200);
+  const [webViewHeight, setWebViewHeight] = useState(windowHeight - 250);
+  const [iframeHeight, setIframeHeight] = useState(300);
   
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -59,6 +60,18 @@ const EmailDetailScreen = () => {
       loadData();
     }
   }, [id]);
+
+  // Listen for iframe height messages on web
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'iframeHeight' && typeof event.data.height === 'number') {
+        setIframeHeight(event.data.height);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const loadData = async () => {
     try {
@@ -281,6 +294,21 @@ const EmailDetailScreen = () => {
               setTimeout(normalizeContrast, 80);
             })();
           </script>
+          <script>
+            (function () {
+              function reportHeight() {
+                var h = document.documentElement.scrollHeight;
+                if (h > 0) window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+              }
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', reportHeight, { once: true });
+              } else {
+                reportHeight();
+              }
+              setTimeout(reportHeight, 200);
+              setTimeout(reportHeight, 1000);
+            })();
+          </script>
         </body>
       </html>
     `;
@@ -415,7 +443,7 @@ const EmailDetailScreen = () => {
                   srcDoc={htmlContent || ''}
                   style={{
                     width: '100%',
-                    height: '600px',
+                    height: iframeHeight,
                     border: 'none',
                     backgroundColor: 'transparent',
                   }}
@@ -428,9 +456,15 @@ const EmailDetailScreen = () => {
                   style={{ height: webViewHeight, backgroundColor: 'transparent' }}
                   scrollEnabled={false}
                   injectedJavaScript={`
-                    setTimeout(function() {
-                      window.ReactNativeWebView.postMessage(document.body.scrollHeight);
-                    }, 500);
+                    (function() {
+                      function reportHeight() {
+                        var h = document.documentElement.scrollHeight;
+                        if (h > 0) window.ReactNativeWebView.postMessage(String(h));
+                      }
+                      reportHeight();
+                      setTimeout(reportHeight, 300);
+                      setTimeout(reportHeight, 1000);
+                    })();
                     true;
                   `}
                   onMessage={(event: any) => {
@@ -546,7 +580,6 @@ const styles = StyleSheet.create({
   },
   bodyContainer: {
     padding: 16,
-    minHeight: 400,
   },
   bodyText: {
     fontSize: 16,
