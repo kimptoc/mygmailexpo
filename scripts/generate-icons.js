@@ -51,6 +51,7 @@ function drawDesign(ctx, variant) {
   // --- Color helpers ---
   const mono = variant === 'monochrome';
 
+  // Closure: captures ctx and mono from drawDesign scope
   function trayFill() {
     if (mono) return '#ffffff';
     const g = ctx.createLinearGradient(0, 172, 0, 438);
@@ -140,6 +141,8 @@ function saveIcon(filename, size, variant) {
   fs.writeFileSync(path.join(ASSETS_DIR, filename), canvas.toBuffer('image/png'));
   console.log(`✓ ${filename} (${size}×${size}, ${variant})`);
 }
+
+fs.mkdirSync(ASSETS_DIR, { recursive: true });
 
 saveIcon('icon.png',                      1024, 'full');
 saveIcon('android-icon-foreground.png',    432, 'foreground');
