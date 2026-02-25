@@ -27,7 +27,12 @@ function drawDesign(ctx, variant) {
 
   // --- Background ---
   if (variant === 'full' || variant === 'background') {
-    ctx.fillStyle = '#0D1B2A';
+    // Rich radial gradient: lighter blue center fading to very dark edges
+    const bg = ctx.createRadialGradient(256, 210, 0, 256, 256, 390);
+    bg.addColorStop(0,   '#162847');  // lighter navy-blue center
+    bg.addColorStop(0.55, '#0D1B2A'); // standard deep navy
+    bg.addColorStop(1,   '#050D18'); // very dark outer edges
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
   } else if (variant === 'monochrome') {
     ctx.fillStyle = '#000000';
@@ -39,12 +44,31 @@ function drawDesign(ctx, variant) {
 
   // --- Glow (full only) ---
   if (variant === 'full') {
-    const glow = ctx.createRadialGradient(256, 295, 10, 256, 295, 140);
-    glow.addColorStop(0, 'rgba(96, 165, 250, 0.45)');
-    glow.addColorStop(1, 'rgba(96, 165, 250, 0)');
-    ctx.fillStyle = glow;
+    // Primary blue glow — stronger and wider
+    const glowBlue = ctx.createRadialGradient(256, 290, 20, 256, 290, 185);
+    glowBlue.addColorStop(0, 'rgba(59, 130, 246, 0.70)');
+    glowBlue.addColorStop(1, 'rgba(59, 130, 246, 0)');
+    ctx.fillStyle = glowBlue;
     ctx.beginPath();
-    ctx.ellipse(256, 295, 140, 90, 0, 0, Math.PI * 2);
+    ctx.ellipse(256, 290, 185, 115, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Purple accent glow (upper-left) for colour variety
+    const glowPurple = ctx.createRadialGradient(185, 245, 10, 185, 245, 120);
+    glowPurple.addColorStop(0, 'rgba(139, 92, 246, 0.40)');
+    glowPurple.addColorStop(1, 'rgba(139, 92, 246, 0)');
+    ctx.fillStyle = glowPurple;
+    ctx.beginPath();
+    ctx.ellipse(185, 245, 120, 80, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Warm red/orange hint (lower-right) — echoes the envelope flap colour
+    const glowRed = ctx.createRadialGradient(320, 330, 10, 320, 330, 90);
+    glowRed.addColorStop(0, 'rgba(234, 67, 53, 0.25)');
+    glowRed.addColorStop(1, 'rgba(234, 67, 53, 0)');
+    ctx.fillStyle = glowRed;
+    ctx.beginPath();
+    ctx.ellipse(320, 330, 90, 60, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -55,12 +79,12 @@ function drawDesign(ctx, variant) {
   function trayFill() {
     if (mono) return '#ffffff';
     const g = ctx.createLinearGradient(0, 172, 0, 438);
-    g.addColorStop(0, '#2D4A6A');
-    g.addColorStop(1, '#1A2D42');
+    g.addColorStop(0, '#2563EB');  // vibrant electric blue
+    g.addColorStop(1, '#1D4ED8');  // rich royal blue
     return g;
   }
-  const highlight  = mono ? 'rgba(255,255,255,0.4)' : '#4A7099';
-  const innerFloor = mono ? '#333333' : '#111E2E';
+  const highlight  = mono ? 'rgba(255,255,255,0.4)' : '#93C5FD';  // bright sky-blue
+  const innerFloor = mono ? '#333333' : '#0F1629';
 
   // --- Tray: left wall ---
   ctx.fillStyle = trayFill();
@@ -110,8 +134,8 @@ function drawDesign(ctx, variant) {
   roundRect(ctx, 138, 214, 236, 166, 5);
   ctx.fill();
 
-  // --- Envelope flap (V-fold at top) ---
-  ctx.fillStyle = mono ? 'rgba(0,0,0,0.3)' : 'rgba(192, 206, 222, 0.75)';
+  // --- Envelope flap (V-fold at top) — Gmail red for a bold colour accent ---
+  ctx.fillStyle = mono ? 'rgba(0,0,0,0.3)' : '#EA4335';
   ctx.beginPath();
   ctx.moveTo(138, 214);
   ctx.lineTo(256, 304);
@@ -120,7 +144,7 @@ function drawDesign(ctx, variant) {
   ctx.fill();
 
   // --- Envelope fold lines (bottom corners to center) ---
-  ctx.strokeStyle = mono ? 'rgba(0,0,0,0.4)' : 'rgba(154, 170, 187, 0.55)';
+  ctx.strokeStyle = mono ? 'rgba(0,0,0,0.4)' : 'rgba(220, 55, 40, 0.50)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(138, 380);

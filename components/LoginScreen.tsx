@@ -32,8 +32,12 @@ export function LoginScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <View style={styles.content}>
-        <View style={[styles.iconContainer, { backgroundColor: tintColor + '20' }]}>
-          <IconSymbol name="envelope.fill" size={80} color={tintColor} />
+        {/* Outer decorative ring */}
+        <View style={[styles.iconRing, { borderColor: tintColor + '35' }]}>
+          {/* Inner icon container */}
+          <View style={[styles.iconContainer, { backgroundColor: tintColor + '28', borderColor: tintColor + '70', borderWidth: 2 }]}>
+            <IconSymbol name="envelope.fill" size={80} color={tintColor} />
+          </View>
         </View>
 
         <Text style={[styles.title, { color: textColor }]}>MyGmail</Text>
@@ -102,13 +106,21 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     width: '100%',
   },
+  iconRing: {
+    width: 162,
+    height: 162,
+    borderRadius: 81,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
   iconContainer: {
     width: 140,
     height: 140,
     borderRadius: 70,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
   },
   title: {
     fontSize: 32,
