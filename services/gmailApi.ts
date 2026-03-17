@@ -288,6 +288,17 @@ export class GmailApiService {
     }), onProgress);
   }
 
+  async addLabelsToEmails(
+    accessToken: string,
+    emailIds: string[],
+    labelIds: string[],
+    onProgress?: (progress: BatchProgress) => void
+  ): Promise<BatchResult> {
+    return this.processEmailModifications(accessToken, emailIds, () => ({
+      addLabelIds: labelIds,
+    }), onProgress);
+  }
+
   async moveEmailsToLabel(
     accessToken: string,
     emailIds: string[],
@@ -439,6 +450,16 @@ export const useGmailApi = () => {
     );
   };
 
+  const addLabelsToEmails = async (
+    emailIds: string[],
+    labelIds: string[],
+    onProgress?: (progress: BatchProgress) => void
+  ): Promise<BatchResult> => {
+    return withAuthRetry((token) =>
+      GmailApiService.getInstance().addLabelsToEmails(token, emailIds, labelIds, onProgress)
+    );
+  };
+
   const moveEmailsToLabel = async (
     emailIds: string[],
     targetLabelId: string,
@@ -460,6 +481,7 @@ export const useGmailApi = () => {
     getEmailDetail,
     markAsRead,
     removeLabelFromEmails,
+    addLabelsToEmails,
     moveEmailsToLabel,
     sendEmail,
   };

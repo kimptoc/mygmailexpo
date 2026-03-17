@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text } from 'react-native';
+import { Animated, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export type ToastType = 'success' | 'error' | 'info';
@@ -9,9 +9,14 @@ interface ToastProps {
   type?: ToastType;
   visible: boolean;
   onHide: () => void;
+  undoAction?: {
+    id: string;
+    label: string;
+  };
+  onUndo?: () => void;
 }
 
-export function Toast({ message, type = 'info', visible, onHide }: ToastProps) {
+export function Toast({ message, type = 'info', visible, onHide, undoAction, onUndo }: ToastProps) {
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -22,7 +27,7 @@ export function Toast({ message, type = 'info', visible, onHide }: ToastProps) {
           duration: 300,
           useNativeDriver: true,
         }),
-        Animated.delay(3000),
+        Animated.delay(undoAction ? 10000 : 3000),
         Animated.timing(opacity, {
           toValue: 0,
           duration: 300,
@@ -32,7 +37,7 @@ export function Toast({ message, type = 'info', visible, onHide }: ToastProps) {
         onHide();
       });
     }
-  }, [visible, onHide, opacity]);
+  }, [visible, onHide, opacity, undoAction]);
 
   if (!visible) return null;
 
@@ -71,6 +76,11 @@ export function Toast({ message, type = 'info', visible, onHide }: ToastProps) {
       <Text style={styles.text} selectable>
         {message}
       </Text>
+      {undoAction && onUndo && (
+        <TouchableOpacity onPress={onUndo} style={styles.undoButton}>
+          <Text style={styles.undoText}>{undoAction.label || 'UNDO'}</Text>
+        </TouchableOpacity>
+      )}
     </Animated.View>
   );
 }
@@ -88,16 +98,28 @@ const styles = StyleSheet.create({
     boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
     elevation: 5,
     zIndex: 10000,
-    justifyContent: 'center', // Center text if no icon, or align with icon
+    justifyContent: 'center',
   },
   text: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
-    flex: 1, // Allow text to wrap
+    flex: 1,
     textAlign: 'center',
   },
   icon: {
     marginRight: 10,
+  },
+  undoButton: {
+    marginLeft: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+  },
+  undoText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
