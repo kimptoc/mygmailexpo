@@ -61,6 +61,10 @@ const EmailDetailScreen = () => {
     }
   }, [id]);
 
+  useEffect(() => {
+    setWebViewHeight(windowHeight - 250);
+  }, [windowHeight]);
+
   // Listen for iframe height messages on web
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -171,7 +175,7 @@ const EmailDetailScreen = () => {
       <!DOCTYPE html>
       <html>
         <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
           <base target="_blank">
           <style>
             body {
@@ -183,9 +187,20 @@ const EmailDetailScreen = () => {
               margin: 0;
               padding: 0;
               word-wrap: break-word;
+              overflow-x: hidden;
+              width: 100%;
+              max-width: 100vw;
             }
             html {
               background-color: ${readableBgColor};
+              width: 100%;
+              max-width: 100vw;
+              overflow-x: hidden;
+            }
+            table, img, div {
+              max-width: 100%;
+              width: auto;
+              height: auto;
             }
             img {
               max-width: 100%;
@@ -459,11 +474,17 @@ const EmailDetailScreen = () => {
                     (function() {
                       function reportHeight() {
                         var h = document.documentElement.scrollHeight;
+                        var w = document.documentElement.scrollWidth;
                         if (h > 0) window.ReactNativeWebView.postMessage(String(h));
+                        if (w > window.innerWidth) {
+                          document.body.style.overflowX = 'hidden';
+                          document.body.style.width = window.innerWidth + 'px';
+                        }
                       }
                       reportHeight();
                       setTimeout(reportHeight, 300);
                       setTimeout(reportHeight, 1000);
+                      setTimeout(reportHeight, 2000);
                     })();
                     true;
                   `}

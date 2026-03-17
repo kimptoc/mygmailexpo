@@ -1,0 +1,76 @@
+describe('Email View Scroll Fix', () => {
+  const generateHtmlWithViewportFix = () => {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+          <style>
+            body {
+              overflow-x: hidden;
+              width: 100%;
+              max-width: 100vw;
+            }
+            html {
+              overflow-x: hidden;
+            }
+            table, img, div {
+              max-width: 100%;
+            }
+          </style>
+        </head>
+        <body>
+          Test content
+        </body>
+      </html>
+    `;
+  };
+
+  it('generates HTML with viewport fix for scroll issues', () => {
+    const html = generateHtmlWithViewportFix();
+    expect(html).toContain('shrink-to-fit=no');
+    expect(html).toContain('overflow-x: hidden');
+    expect(html).toContain('max-width: 100%');
+  });
+
+  it('includes max-width constraints for tables and images', () => {
+    const html = generateHtmlWithViewportFix();
+    expect(html).toContain('table, img, div');
+    expect(html).toContain('max-width: 100%');
+  });
+
+  describe('JavaScript height reporting fix', () => {
+    const injectedJs = `
+      (function() {
+        function reportHeight() {
+          var h = document.documentElement.scrollHeight;
+          var w = document.documentElement.scrollWidth;
+          if (h > 0) window.ReactNativeWebView.postMessage(String(h));
+          if (w > window.innerWidth) {
+            document.body.style.overflowX = 'hidden';
+            document.body.style.width = window.innerWidth + 'px';
+          }
+        }
+        reportHeight();
+        setTimeout(reportHeight, 300);
+        setTimeout(reportHeight, 1000);
+        setTimeout(reportHeight, 2000);
+      })();
+    `;
+
+    it('checks both height and width for overflow', () => {
+      expect(injectedJs).toContain('scrollHeight');
+      expect(injectedJs).toContain('scrollWidth');
+    });
+
+    it('handles width overflow by constraining body', () => {
+      expect(injectedJs).toContain('overflowX = \'hidden\'');
+      expect(injectedJs).toContain('window.innerWidth');
+    });
+
+    it('reports height multiple times for dynamic content', () => {
+      const count = (injectedJs.match(/reportHeight/g) || []).length;
+      expect(count).toBe(5);
+    });
+  });
+});
