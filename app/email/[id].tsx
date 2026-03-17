@@ -36,7 +36,8 @@ const EmailDetailScreen = () => {
     markAsRead, 
     getLabels, 
     moveEmailsToLabel,
-    removeLabelFromEmails
+    removeLabelFromEmails,
+    addLabelsToEmails
   } = useGmailApi();
   const [email, setEmail] = useState<EmailDetail | null>(null);
   const [labelsMap, setLabelsMap] = useState<Record<string, any>>({});
@@ -107,16 +108,16 @@ const EmailDetailScreen = () => {
   const handleRemoveLabel = async () => {
     if (!folderId) return;
     setActionLoading(true);
-    const currentFolderId = folderId;
+    const removedLabelId = folderId;
     try {
-      await removeLabelFromEmails([id], currentFolderId);
+      await removeLabelFromEmails([id], removedLabelId);
       showUndoToast(
         '1 email removed',
         {
           id: `remove-label-${id}-${Date.now()}`,
           label: 'Undo',
           undo: async () => {
-            await moveEmailsToLabel([id], currentFolderId, 'INBOX');
+            await addLabelsToEmails([id], [removedLabelId]);
           }
         }
       );

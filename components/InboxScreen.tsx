@@ -40,7 +40,8 @@ export function InboxScreen() {
     getEmailsByLabel, 
     getLabels, 
     moveEmailsToLabel,
-    removeLabelFromEmails
+    removeLabelFromEmails,
+    addLabelsToEmails
   } = useGmailApi();
   const { showToast, showUndoToast } = useToast();
   const backgroundColor = useThemeColor({}, 'background');
@@ -237,7 +238,7 @@ export function InboxScreen() {
             id: `remove-label-batch-${Date.now()}`,
             label: 'Undo',
             undo: async () => {
-              await moveEmailsToLabel(ids, sourceFolderId, 'INBOX');
+              await addLabelsToEmails(ids, [sourceFolderId]);
             }
           }
         );
@@ -253,7 +254,7 @@ export function InboxScreen() {
       setActionLoading(false);
       setBatchProgress(null);
     }
-  }, [selectedIds, currentFolder, removeLabelFromEmails, moveEmailsToLabel, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
+  }, [selectedIds, currentFolder, removeLabelFromEmails, addLabelsToEmails, moveEmailsToLabel, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
 
   const handleMoveToFolder = useCallback(async (targetLabelId: string, idsToProcess?: string[]) => {
     setActionLoading(true);
