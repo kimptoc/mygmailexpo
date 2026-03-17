@@ -42,7 +42,7 @@ export function InboxScreen() {
     moveEmailsToLabel,
     removeLabelFromEmails
   } = useGmailApi();
-  const { showToast } = useToast();
+  const { showToast, showUndoToast } = useToast();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const separatorColor = useThemeColor({}, 'separator');
@@ -208,6 +208,7 @@ export function InboxScreen() {
     if (!currentFolder) return;
     setActionLoading(true);
     const ids = Array.isArray(idsToProcess) ? idsToProcess : Array.from(selectedIds);
+    const sourceFolderId = currentFolder.id;
     setBatchProgress({
       processed: 0,
       total: ids.length,
@@ -215,7 +216,7 @@ export function InboxScreen() {
       failed: 0,
     });
     try {
-      const result = await removeLabelFromEmails(ids, currentFolder.id, (progress) => {
+      const result = await removeLabelFromEmails(ids, sourceFolderId, (progress) => {
         setBatchProgress(progress);
       });
       if (result.failed.length > 0) {
@@ -229,10 +230,19 @@ export function InboxScreen() {
         });
         setShowErrorModal(true);
       } else {
-        showToast(`${result.succeeded.length} email(s) removed`, 'success');
+        const count = result.succeeded.length;
+        showUndoToast(
+          `${count} email(s) removed`,
+          {
+            id: `remove-label-batch-${Date.now()}`,
+            label: 'Undo',
+            undo: async () => {
+              await moveEmailsToLabel(ids, sourceFolderId, 'INBOX');
+            }
+          }
+        );
       }
       
-      // On success, always clear the selection
       clearSelection();
       handleRefresh();
 
@@ -243,11 +253,12 @@ export function InboxScreen() {
       setActionLoading(false);
       setBatchProgress(null);
     }
-  }, [selectedIds, currentFolder, removeLabelFromEmails, clearSelection, handleRefresh, showToast, emailState.emails]);
+  }, [selectedIds, currentFolder, removeLabelFromEmails, moveEmailsToLabel, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
 
   const handleMoveToFolder = useCallback(async (targetLabelId: string, idsToProcess?: string[]) => {
     setActionLoading(true);
     const ids = Array.isArray(idsToProcess) ? idsToProcess : Array.from(selectedIds);
+    const sourceFolderId = currentFolder?.id || 'INBOX';
     setBatchProgress({
       processed: 0,
       total: ids.length,
@@ -255,7 +266,7 @@ export function InboxScreen() {
       failed: 0,
     });
     try {
-      const result = await moveEmailsToLabel(ids, targetLabelId, currentFolder?.id || 'INBOX', (progress) => {
+      const result = await moveEmailsToLabel(ids, targetLabelId, sourceFolderId, (progress) => {
         setBatchProgress(progress);
       });
 
@@ -271,10 +282,19 @@ export function InboxScreen() {
         });
         setShowErrorModal(true);
       } else {
-        showToast(`${result.succeeded.length} email(s) moved`, 'success');
+        const count = result.succeeded.length;
+        showUndoToast(
+          `${count} email(s) moved`,
+          {
+            id: `move-batch-${Date.now()}`,
+            label: 'Undo',
+            undo: async () => {
+              await moveEmailsToLabel(ids, sourceFolderId, targetLabelId);
+            }
+          }
+        );
       }
       
-      // On success, always clear the selection
       clearSelection();
       handleRefresh();
 
@@ -285,7 +305,7 @@ export function InboxScreen() {
       setActionLoading(false);
       setBatchProgress(null);
     }
-  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast, emailState.emails]);
+  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
 
   const handleRetryBatch = () => {
     if (!batchErrorDetails) return;

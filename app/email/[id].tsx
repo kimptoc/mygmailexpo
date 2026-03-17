@@ -27,7 +27,7 @@ import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
-  const { showToast } = useToast();
+  const { showToast, showUndoToast } = useToast();
   const { width, height: windowHeight } = useWindowDimensions();
   const isLargeScreen = width > 600;
   const { signIn } = useAuth();
@@ -107,9 +107,19 @@ const EmailDetailScreen = () => {
   const handleRemoveLabel = async () => {
     if (!folderId) return;
     setActionLoading(true);
+    const currentFolderId = folderId;
     try {
-      await removeLabelFromEmails([id], folderId);
-      showToast('1 email removed', 'success');
+      await removeLabelFromEmails([id], currentFolderId);
+      showUndoToast(
+        '1 email removed',
+        {
+          id: `remove-label-${id}-${Date.now()}`,
+          label: 'Undo',
+          undo: async () => {
+            await moveEmailsToLabel([id], currentFolderId, 'INBOX');
+          }
+        }
+      );
       router.back();
     } catch (err: any) {
       console.error('Error removing label:', err);
@@ -120,11 +130,20 @@ const EmailDetailScreen = () => {
 
   const handleMoveToFolder = async (folder: any) => {
     setActionLoading(true);
+    const currentLabelId = folderId || 'INBOX';
+    const targetLabelId = folder.id;
     try {
-      // Use the folderId from route params as the current primary label
-      const currentLabelId = folderId || 'INBOX';
-      await moveEmailsToLabel([id], folder.id, currentLabelId);
-      showToast(`1 email moved`, 'success');
+      await moveEmailsToLabel([id], targetLabelId, currentLabelId);
+      showUndoToast(
+        '1 email moved',
+        {
+          id: `move-email-${id}-${Date.now()}`,
+          label: 'Undo',
+          undo: async () => {
+            await moveEmailsToLabel([id], currentLabelId, targetLabelId);
+          }
+        }
+      );
       setShowFolderModal(false);
       router.back();
     } catch (err: any) {
