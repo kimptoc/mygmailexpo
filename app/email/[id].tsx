@@ -66,6 +66,20 @@ const EmailDetailScreen = () => {
     setWebViewHeight(windowHeight - 250);
   }, [windowHeight]);
 
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const updateIframeHeight = () => {
+        const newHeight = Math.max(300, windowHeight - 250);
+        setIframeHeight(newHeight);
+      };
+      
+      updateIframeHeight();
+      
+      window.addEventListener('resize', updateIframeHeight);
+      return () => window.removeEventListener('resize', updateIframeHeight);
+    }
+  }, [windowHeight]);
+
   // Listen for iframe height messages on web
   useEffect(() => {
     if (Platform.OS !== 'web') return;
