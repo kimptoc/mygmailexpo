@@ -18,10 +18,15 @@ interface ToastProps {
 
 export function Toast({ message, type = 'info', visible, onHide, undoAction, onUndo }: ToastProps) {
   const opacity = useRef(new Animated.Value(0)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (visible) {
-      Animated.sequence([
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
+      
+      animationRef.current = Animated.sequence([
         Animated.timing(opacity, {
           toValue: 1,
           duration: 300,
@@ -33,10 +38,18 @@ export function Toast({ message, type = 'info', visible, onHide, undoAction, onU
           duration: 300,
           useNativeDriver: true,
         }),
-      ]).start(() => {
+      ]);
+      
+      animationRef.current.start(() => {
         onHide();
       });
     }
+    
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
+    };
   }, [visible, onHide, opacity, undoAction]);
 
   if (!visible) return null;
