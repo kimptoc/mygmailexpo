@@ -196,8 +196,8 @@ export function InboxScreen() {
   }, [currentFolder, loadEmails, loadLabels]);
 
   useEffect(() => {
-    onRefresh(handleRefresh);
-  }, [onRefresh, handleRefresh]);
+    return onRefresh(handleRefresh);
+  }, [handleRefresh]);
 
   const handleSelectAll = useCallback(() => {
     const allIds = emailState.emails.map(e => e.id);
