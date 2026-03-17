@@ -32,6 +32,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   });
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoCallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentUndoIdRef = useRef<string | null>(null);
   const refreshCallbackRef = useRef<(() => void) | null>(null);
 
@@ -51,12 +53,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+    if (undoCallbackTimeoutRef.current) {
+      clearTimeout(undoCallbackTimeoutRef.current);
+      undoCallbackTimeoutRef.current = null;
+    }
     currentUndoIdRef.current = null;
   }, []);
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
     }
     setToast({ message, type, visible: true, undoAction: undefined });
     currentUndoIdRef.current = null;
@@ -95,6 +105,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+      if (undoCallbackTimeoutRef.current) {
+        clearTimeout(undoCallbackTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -112,16 +128,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           if (undoId && toast.undoAction) {
             toast.undoAction.undo()
               .then(() => {
-                showToast('Undone', 'success');
+                setToast({ message: 'Undone', type: 'success', visible: true, undoAction: undefined });
                 triggerRefresh();
+                undoCallbackTimeoutRef.current = setTimeout(() => {
+                  hideToast();
+                }, 3000);
               })
               .catch((err) => {
-                showToast(err.message || 'Failed to undo', 'error');
-              })
-              .finally(() => {
-                if (currentUndoIdRef.current === undoId) {
+                setToast({ message: err.message || 'Failed to undo', type: 'error', visible: true, undoAction: undefined });
+                undoCallbackTimeoutRef.current = setTimeout(() => {
                   hideToast();
-                }
+                }, 3000);
               });
           }
         } : undefined}
