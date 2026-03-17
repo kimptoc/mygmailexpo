@@ -239,6 +239,7 @@ export function InboxScreen() {
             label: 'Undo',
             undo: async () => {
               await addLabelsToEmails(ids, [sourceFolderId]);
+              handleRefresh();
             }
           }
         );
@@ -291,6 +292,7 @@ export function InboxScreen() {
             label: 'Undo',
             undo: async () => {
               await moveEmailsToLabel(ids, sourceFolderId, targetLabelId);
+              handleRefresh();
             }
           }
         );
