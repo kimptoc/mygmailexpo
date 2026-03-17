@@ -43,7 +43,7 @@ export function InboxScreen() {
     removeLabelFromEmails,
     addLabelsToEmails
   } = useGmailApi();
-  const { showToast, showUndoToast } = useToast();
+  const { showToast, showUndoToast, triggerRefresh, onRefresh } = useToast();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const separatorColor = useThemeColor({}, 'separator');
@@ -195,6 +195,10 @@ export function InboxScreen() {
     loadLabels();
   }, [currentFolder, loadEmails, loadLabels]);
 
+  useEffect(() => {
+    return onRefresh(handleRefresh);
+  }, [handleRefresh]);
+
   const handleSelectAll = useCallback(() => {
     const allIds = emailState.emails.map(e => e.id);
     const allSelected = selectedIds.size === emailState.emails.length && emailState.emails.length > 0;
@@ -238,7 +242,12 @@ export function InboxScreen() {
             id: `remove-label-batch-${Date.now()}`,
             label: 'Undo',
             undo: async () => {
-              await addLabelsToEmails(ids, [sourceFolderId]);
+              try {
+                await addLabelsToEmails(ids, [sourceFolderId]);
+              } catch (err) {
+                console.error('Error undoing label removal:', err);
+                throw err;
+              }
             }
           }
         );
@@ -290,7 +299,12 @@ export function InboxScreen() {
             id: `move-batch-${Date.now()}`,
             label: 'Undo',
             undo: async () => {
-              await moveEmailsToLabel(ids, sourceFolderId, targetLabelId);
+              try {
+                await moveEmailsToLabel(ids, sourceFolderId, targetLabelId);
+              } catch (err) {
+                console.error('Error undoing email move:', err);
+                throw err;
+              }
             }
           }
         );
