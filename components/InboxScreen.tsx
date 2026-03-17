@@ -244,7 +244,6 @@ export function InboxScreen() {
             undo: async () => {
               try {
                 await addLabelsToEmails(ids, [sourceFolderId]);
-                handleRefresh();
               } catch (err) {
                 console.error('Error undoing label removal:', err);
                 throw err;
@@ -302,7 +301,6 @@ export function InboxScreen() {
             undo: async () => {
               try {
                 await moveEmailsToLabel(ids, sourceFolderId, targetLabelId);
-                handleRefresh();
               } catch (err) {
                 console.error('Error undoing email move:', err);
                 throw err;

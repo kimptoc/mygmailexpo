@@ -5,7 +5,6 @@ export interface UndoAction {
   id: string;
   undo: () => Promise<void>;
   label: string;
-  onComplete?: () => void;
 }
 
 interface ToastContextType {
@@ -114,7 +113,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             toast.undoAction.undo()
               .then(() => {
                 showToast('Undone', 'success');
-                toast.undoAction?.onComplete?.();
                 triggerRefresh();
               })
               .catch((err) => {
