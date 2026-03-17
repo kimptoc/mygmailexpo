@@ -43,7 +43,7 @@ export function InboxScreen() {
     removeLabelFromEmails,
     addLabelsToEmails
   } = useGmailApi();
-  const { showToast, showUndoToast } = useToast();
+  const { showToast, showUndoToast, triggerRefresh, onRefresh } = useToast();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const separatorColor = useThemeColor({}, 'separator');
@@ -194,6 +194,10 @@ export function InboxScreen() {
     loadEmails(folderId, true);
     loadLabels();
   }, [currentFolder, loadEmails, loadLabels]);
+
+  useEffect(() => {
+    onRefresh(handleRefresh);
+  }, [onRefresh, handleRefresh]);
 
   const handleSelectAll = useCallback(() => {
     const allIds = emailState.emails.map(e => e.id);

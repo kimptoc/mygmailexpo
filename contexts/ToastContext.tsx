@@ -12,6 +12,8 @@ interface ToastContextType {
   showToast: (message: string, type?: ToastType) => void;
   showUndoToast: (message: string, undoAction: UndoAction, duration?: number) => void;
   cancelUndo: (id: string) => void;
+  triggerRefresh: () => void;
+  onRefresh: (callback: () => void) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -32,6 +34,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentUndoIdRef = useRef<string | null>(null);
+  const refreshCallbackRef = useRef<(() => void) | null>(null);
+
+  const triggerRefresh = useCallback(() => {
+    if (refreshCallbackRef.current) {
+      refreshCallbackRef.current();
+    }
+  }, []);
+
+  const onRefresh = useCallback((callback: () => void) => {
+    refreshCallbackRef.current = callback;
+  }, []);
 
   const hideToast = useCallback(() => {
     setToast((prev) => ({ ...prev, visible: false }));
@@ -87,7 +100,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ToastContext.Provider value={{ showToast, showUndoToast, cancelUndo }}>
+    <ToastContext.Provider value={{ showToast, showUndoToast, cancelUndo, triggerRefresh, onRefresh }}>
       {children}
       <Toast
         message={toast.message}
@@ -102,6 +115,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               .then(() => {
                 showToast('Undone', 'success');
                 toast.undoAction?.onComplete?.();
+                triggerRefresh();
               })
               .catch((err) => {
                 showToast(err.message || 'Failed to undo', 'error');
