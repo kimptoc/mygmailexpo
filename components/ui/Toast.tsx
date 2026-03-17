@@ -19,6 +19,7 @@ interface ToastProps {
 export function Toast({ message, type = 'info', visible, onHide, undoAction, onUndo }: ToastProps) {
   const opacity = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const hasUndo = Boolean(undoAction && onUndo);
 
   useEffect(() => {
     if (visible) {
@@ -32,7 +33,7 @@ export function Toast({ message, type = 'info', visible, onHide, undoAction, onU
           duration: 300,
           useNativeDriver: true,
         }),
-        Animated.delay(undoAction ? 10000 : 3000),
+        Animated.delay(hasUndo ? 10000 : 3000),
         Animated.timing(opacity, {
           toValue: 0,
           duration: 300,
@@ -50,7 +51,7 @@ export function Toast({ message, type = 'info', visible, onHide, undoAction, onU
         animationRef.current.stop();
       }
     };
-  }, [visible, onHide, opacity, undoAction]);
+  }, [visible, onHide, opacity, hasUndo]);
 
   if (!visible) return null;
 

@@ -45,6 +45,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const onRefresh = useCallback((callback: () => void) => {
     refreshCallbackRef.current = callback;
+    return () => {
+      refreshCallbackRef.current = null;
+    };
   }, []);
 
   const hideToast = useCallback(() => {
