@@ -61,6 +61,10 @@ const EmailDetailScreen = () => {
     }
   }, [id]);
 
+  useEffect(() => {
+    setWebViewHeight(windowHeight - 250);
+  }, [windowHeight]);
+
   // Listen for iframe height messages on web
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -470,11 +474,17 @@ const EmailDetailScreen = () => {
                     (function() {
                       function reportHeight() {
                         var h = document.documentElement.scrollHeight;
+                        var w = document.documentElement.scrollWidth;
                         if (h > 0) window.ReactNativeWebView.postMessage(String(h));
+                        if (w > window.innerWidth) {
+                          document.body.style.overflowX = 'hidden';
+                          document.body.style.width = window.innerWidth + 'px';
+                        }
                       }
                       reportHeight();
                       setTimeout(reportHeight, 300);
                       setTimeout(reportHeight, 1000);
+                      setTimeout(reportHeight, 2000);
                     })();
                     true;
                   `}
