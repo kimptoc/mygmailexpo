@@ -242,8 +242,13 @@ export function InboxScreen() {
             id: `remove-label-batch-${Date.now()}`,
             label: 'Undo',
             undo: async () => {
-              await addLabelsToEmails(ids, [sourceFolderId]);
-              handleRefresh();
+              try {
+                await addLabelsToEmails(ids, [sourceFolderId]);
+                handleRefresh();
+              } catch (err) {
+                console.error('Error undoing label removal:', err);
+                throw err;
+              }
             }
           }
         );
@@ -295,8 +300,13 @@ export function InboxScreen() {
             id: `move-batch-${Date.now()}`,
             label: 'Undo',
             undo: async () => {
-              await moveEmailsToLabel(ids, sourceFolderId, targetLabelId);
-              handleRefresh();
+              try {
+                await moveEmailsToLabel(ids, sourceFolderId, targetLabelId);
+                handleRefresh();
+              } catch (err) {
+                console.error('Error undoing email move:', err);
+                throw err;
+              }
             }
           }
         );
