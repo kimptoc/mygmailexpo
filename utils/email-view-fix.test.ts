@@ -39,6 +39,24 @@ describe('Email View Scroll Fix', () => {
     expect(html).toContain('max-width: 100%');
   });
 
+  describe('iframe height calculation', () => {
+    const calculateIframeHeight = (windowHeight: number) => Math.max(300, windowHeight - 250);
+
+    it('uses minimum height of 300 pixels', () => {
+      expect(calculateIframeHeight(200)).toBe(300);
+      expect(calculateIframeHeight(100)).toBe(300);
+    });
+
+    it('calculates height based on window dimensions', () => {
+      expect(calculateIframeHeight(800)).toBe(550);
+      expect(calculateIframeHeight(1000)).toBe(750);
+    });
+
+    it('handles iPad landscape dimensions', () => {
+      expect(calculateIframeHeight(1024)).toBe(774);
+    });
+  });
+
   describe('JavaScript height reporting fix', () => {
     const injectedJs = `
       (function() {
