@@ -1,3 +1,5 @@
+[![Tests](https://github.com/kimptoc/mygmailexpo/actions/workflows/test.yml/badge.svg)](https://github.com/kimptoc/mygmailexpo/actions/workflows/test.yml)
+
 # Welcome to your Expo app 👋
 
 Its a simple gmail client that lists my emails in my inbox
