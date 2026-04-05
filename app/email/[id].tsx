@@ -221,7 +221,7 @@ const EmailDetailScreen = () => {
               margin: 0;
               padding: 0;
               word-wrap: break-word;
-              overflow-x: hidden;
+              overflow: hidden;
               width: 100%;
               max-width: 100vw;
             }
@@ -345,9 +345,13 @@ const EmailDetailScreen = () => {
           </script>
           <script>
             (function () {
+              var lastHeight = 0;
               function reportHeight() {
                 var h = document.documentElement.scrollHeight;
-                if (h > 0) window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+                if (h > 0 && h !== lastHeight) {
+                  lastHeight = h;
+                  window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+                }
               }
               if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', reportHeight, { once: true });
@@ -356,6 +360,11 @@ const EmailDetailScreen = () => {
               }
               setTimeout(reportHeight, 200);
               setTimeout(reportHeight, 1000);
+              setTimeout(reportHeight, 3000);
+              // Use ResizeObserver to catch late-loading content (images, fonts, etc.)
+              if (typeof ResizeObserver !== 'undefined') {
+                new ResizeObserver(reportHeight).observe(document.documentElement);
+              }
             })();
           </script>
         </body>
@@ -495,7 +504,9 @@ const EmailDetailScreen = () => {
                     height: iframeHeight,
                     border: 'none',
                     backgroundColor: 'transparent',
+                    overflow: 'hidden',
                   }}
+                  scrolling="no"
                   title="Email Content"
                 />
               ) : (
