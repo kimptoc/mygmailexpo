@@ -51,7 +51,7 @@ export function Toast({ message, type = 'info', visible, onHide, undoAction, onU
         animationRef.current.stop();
       }
     };
-  }, [visible, onHide, opacity, hasUndo]);
+  }, [visible, message, onHide, opacity, hasUndo]);
 
   if (!visible) return null;
 
