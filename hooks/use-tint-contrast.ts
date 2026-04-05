@@ -36,7 +36,7 @@ export const isWhiteColor = (color: string) => {
     return !!parsed && parsed.r === 255 && parsed.g === 255 && parsed.b === 255 && parsed.a !== 0;
   }
   if (normalized.startsWith('rgb(') || normalized.startsWith('rgba(')) {
-    const inner = normalized.replace(/rgba?\\(|\\)/g, '');
+    const inner = normalized.replace(/rgba?\(|\)/g, '');
     const parsed = parseRgbColor(inner);
     return !!parsed && parsed.r === 255 && parsed.g === 255 && parsed.b === 255 && parsed.a !== 0;
   }

@@ -1,3 +1,7 @@
+jest.mock('@/hooks/use-theme-color', () => ({
+  useThemeColor: () => '#000000',
+}));
+
 import { isWhiteColor, parseHexColor, parseRgbColor } from './use-tint-contrast';
 
 describe('use-tint-contrast helpers', () => {
