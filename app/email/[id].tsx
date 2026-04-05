@@ -221,7 +221,7 @@ const EmailDetailScreen = () => {
               margin: 0;
               padding: 0;
               word-wrap: break-word;
-              overflow-x: hidden;
+              overflow: hidden;
               width: 100%;
               max-width: 100vw;
             }
@@ -229,7 +229,7 @@ const EmailDetailScreen = () => {
               background-color: ${readableBgColor};
               width: 100%;
               max-width: 100vw;
-              overflow-x: hidden;
+              overflow: hidden;
             }
             table, img, div {
               max-width: 100%;
@@ -345,9 +345,13 @@ const EmailDetailScreen = () => {
           </script>
           <script>
             (function () {
+              var lastHeight = 0;
               function reportHeight() {
                 var h = document.documentElement.scrollHeight;
-                if (h > 0) window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+                if (h > 0 && h !== lastHeight) {
+                  lastHeight = h;
+                  window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+                }
               }
               if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', reportHeight, { once: true });
@@ -356,6 +360,13 @@ const EmailDetailScreen = () => {
               }
               setTimeout(reportHeight, 200);
               setTimeout(reportHeight, 1000);
+              setTimeout(reportHeight, 3000);
+              // Use ResizeObserver to catch late-loading content (images, fonts, etc.)
+              if (typeof ResizeObserver !== 'undefined') {
+                var ro = new ResizeObserver(reportHeight);
+                ro.observe(document.documentElement);
+                window.addEventListener('unload', function () { ro.disconnect(); });
+              }
             })();
           </script>
         </body>
@@ -495,6 +506,7 @@ const EmailDetailScreen = () => {
                     height: iframeHeight,
                     border: 'none',
                     backgroundColor: 'transparent',
+                    overflow: 'hidden',
                   }}
                   title="Email Content"
                 />
