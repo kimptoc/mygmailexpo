@@ -229,7 +229,7 @@ const EmailDetailScreen = () => {
               background-color: ${readableBgColor};
               width: 100%;
               max-width: 100vw;
-              overflow-x: hidden;
+              overflow: hidden;
             }
             table, img, div {
               max-width: 100%;
@@ -363,7 +363,9 @@ const EmailDetailScreen = () => {
               setTimeout(reportHeight, 3000);
               // Use ResizeObserver to catch late-loading content (images, fonts, etc.)
               if (typeof ResizeObserver !== 'undefined') {
-                new ResizeObserver(reportHeight).observe(document.documentElement);
+                var ro = new ResizeObserver(reportHeight);
+                ro.observe(document.documentElement);
+                window.addEventListener('unload', function () { ro.disconnect(); });
               }
             })();
           </script>
@@ -506,7 +508,6 @@ const EmailDetailScreen = () => {
                     backgroundColor: 'transparent',
                     overflow: 'hidden',
                   }}
-                  scrolling="no"
                   title="Email Content"
                 />
               ) : (
