@@ -25,6 +25,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 import { getSelectionAction } from '@/utils/folder-actions';
+import { splitTextOnUrls } from '@/utils/auto-link-urls';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
@@ -555,7 +556,22 @@ const EmailDetailScreen = () => {
                 />
               )
             ) : (
-              <ThemedText style={styles.bodyText}>{email.plainTextBody || email.snippet}</ThemedText>
+              <ThemedText style={styles.bodyText}>
+                {splitTextOnUrls(email.plainTextBody || email.snippet || '').map((seg, i) =>
+                  seg.type === 'url' ? (
+                    <ThemedText
+                      key={i}
+                      style={{ color: tintColor, textDecorationLine: 'underline' }}
+                      onPress={() => Linking.openURL(seg.value)}
+                      accessibilityRole="link"
+                    >
+                      {seg.value}
+                    </ThemedText>
+                  ) : (
+                    <ThemedText key={i}>{seg.value}</ThemedText>
+                  )
+                )}
+              </ThemedText>
             )}
           </View>
         </ScrollView>
