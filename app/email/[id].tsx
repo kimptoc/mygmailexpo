@@ -115,7 +115,11 @@ const EmailDetailScreen = () => {
       }
     } catch (err: any) {
       console.error('Error loading email:', err);
-      setError(err.message || 'Failed to load email');
+      if (err?.status === 404) {
+        setError('Email not found — it may have been deleted');
+      } else {
+        setError(err.message || 'Failed to load email');
+      }
     } finally {
       setLoading(false);
     }
