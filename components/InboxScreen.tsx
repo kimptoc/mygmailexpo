@@ -486,7 +486,7 @@ export function InboxScreen() {
                   <TouchableOpacity
                     onPress={() => setShowFolderModal(true)}
                     style={styles.selectionActionButton}
-                    accessibilityLabel="Move"
+                    accessibilityLabel="Move to folder"
                   >
                     <IconSymbol name="folder" size={iconSize} color={selectionHeaderText} />
                   </TouchableOpacity>
