@@ -28,6 +28,7 @@ import ComposeEmailModal from '@/components/ComposeEmailModal';
 import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 import { useEmailSelection } from '@/hooks/useEmailSelection';
+import { getSelectionAction } from '@/utils/folder-actions';
 
 import { EmailItemSkeleton } from '@/components/EmailItemSkeleton';
 
@@ -210,10 +211,9 @@ export function InboxScreen() {
   }, [emailState.emails, selectedIds.size, selectAll, clearSelection]);
 
   const handleRemoveLabelBatch = useCallback(async (idsToProcess?: string[]) => {
-    if (!currentFolder) return;
     setActionLoading(true);
     const ids = Array.isArray(idsToProcess) ? idsToProcess : Array.from(selectedIds);
-    const sourceFolderId = currentFolder.id;
+    const sourceFolderId = currentFolder?.id ?? 'INBOX';
     setBatchProgress({
       processed: 0,
       total: ids.length,
@@ -236,8 +236,11 @@ export function InboxScreen() {
         setShowErrorModal(true);
       } else {
         const count = result.succeeded.length;
+        const message = sourceFolderId === 'INBOX'
+          ? `${count} email(s) archived`
+          : `${count} email(s) removed`;
         showUndoToast(
-          `${count} email(s) removed`,
+          message,
           {
             id: `remove-label-batch-${Date.now()}`,
             label: 'Undo',
@@ -350,10 +353,8 @@ export function InboxScreen() {
     }
   }, [isSelectionMode, loadEmails, handleMoveToFolder]);
 
-  const showRemoveLabel = !!currentFolder && 
-    currentFolder.id !== 'INBOX' && 
-    !currentFolder.id.startsWith('CATEGORY_') && 
-    !['TRASH', 'SENT', 'DRAFTS', 'SPAM', 'STARRED', 'IMPORTANT', 'UNREAD'].includes(currentFolder.id);
+  const sourceFolderId = currentFolder?.id ?? 'INBOX';
+  const selectionAction = getSelectionAction(sourceFolderId);
 
   const renderEmail = useCallback(
     ({ item }: { item: Email }) => (
@@ -465,12 +466,29 @@ export function InboxScreen() {
                 <ActivityIndicator color={selectionHeaderText} style={{ marginRight: 16 }} />
               ) : (
                 <>
-                  {showRemoveLabel && (
-                    <TouchableOpacity onPress={handleRemoveLabelBatch} style={styles.selectionActionButton}>
+                  {selectionAction === 'archive' && (
+                    <TouchableOpacity
+                      onPress={() => handleRemoveLabelBatch()}
+                      style={styles.selectionActionButton}
+                      accessibilityLabel="Archive"
+                    >
+                      <IconSymbol name="archivebox" size={iconSize} color={selectionHeaderText} />
+                    </TouchableOpacity>
+                  )}
+                  {selectionAction === 'remove-label' && (
+                    <TouchableOpacity
+                      onPress={() => handleRemoveLabelBatch()}
+                      style={styles.selectionActionButton}
+                      accessibilityLabel="Remove label"
+                    >
                       <IconSymbol name="tag.slash" size={iconSize} color={selectionHeaderText} />
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity onPress={() => setShowFolderModal(true)} style={styles.selectionActionButton}>
+                  <TouchableOpacity
+                    onPress={() => setShowFolderModal(true)}
+                    style={styles.selectionActionButton}
+                    accessibilityLabel="Move"
+                  >
                     <IconSymbol name="folder" size={iconSize} color={selectionHeaderText} />
                   </TouchableOpacity>
                 </>
