@@ -353,8 +353,7 @@ export function InboxScreen() {
     }
   }, [isSelectionMode, loadEmails, handleMoveToFolder]);
 
-  const sourceFolderId = currentFolder?.id ?? 'INBOX';
-  const selectionAction = getSelectionAction(sourceFolderId);
+  const selectionAction = getSelectionAction(currentFolder?.id ?? 'INBOX');
 
   const renderEmail = useCallback(
     ({ item }: { item: Email }) => (
