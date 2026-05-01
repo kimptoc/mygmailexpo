@@ -25,7 +25,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 import { getSelectionAction } from '@/utils/folder-actions';
-import { splitTextOnUrls } from '@/utils/auto-link-urls';
+import { splitTextOnUrls, URL_PATTERN_SOURCE } from '@/utils/auto-link-urls';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
@@ -254,6 +254,63 @@ const EmailDetailScreen = () => {
               var linkColor = ${JSON.stringify(tintColor)};
               var darkText = ${JSON.stringify(fallbackDarkText)};
               var lightText = ${JSON.stringify(fallbackLightText)};
+              var URL_PATTERN_SOURCE = ${JSON.stringify(URL_PATTERN_SOURCE)};
+
+              function autoLinkUrls() {
+                try {
+                  var trailingPunct = /[.,;:!?]+$/;
+                  var skipTags = ['A', 'SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'];
+
+                  function isInsideSkippedAncestor(node) {
+                    var p = node.parentElement;
+                    while (p) {
+                      if (p.tagName && skipTags.indexOf(p.tagName.toUpperCase()) !== -1) return true;
+                      p = p.parentElement;
+                    }
+                    return false;
+                  }
+
+                  var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+                  var candidates = [];
+                  while (walker.nextNode()) {
+                    var node = walker.currentNode;
+                    if (!node.nodeValue) continue;
+                    if (isInsideSkippedAncestor(node)) continue;
+                    if (!/https?:\\/\\//.test(node.nodeValue)) continue;
+                    candidates.push(node);
+                  }
+
+                  candidates.forEach(function (textNode) {
+                    var text = textNode.nodeValue;
+                    var fragment = document.createDocumentFragment();
+                    var re = new RegExp(URL_PATTERN_SOURCE, 'g');
+                    var cursor = 0;
+                    var match;
+                    while ((match = re.exec(text)) !== null) {
+                      var matched = match[0];
+                      var trail = matched.match(trailingPunct);
+                      var url = trail ? matched.slice(0, -trail[0].length) : matched;
+
+                      if (match.index > cursor) {
+                        fragment.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+                      }
+                      var a = document.createElement('a');
+                      a.href = url;
+                      a.textContent = url;
+                      fragment.appendChild(a);
+                      cursor = match.index + url.length;
+                    }
+                    if (cursor < text.length) {
+                      fragment.appendChild(document.createTextNode(text.slice(cursor)));
+                    }
+                    if (textNode.parentNode) {
+                      textNode.parentNode.replaceChild(fragment, textNode);
+                    }
+                  });
+                } catch (e) {
+                  // best-effort auto-link pass
+                }
+              }
 
               function parseRgb(value) {
                 if (!value) return null;
@@ -332,12 +389,17 @@ const EmailDetailScreen = () => {
                 }
               }
 
-              if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', normalizeContrast, { once: true });
-              } else {
+              function runEnhancements() {
+                autoLinkUrls();
                 normalizeContrast();
               }
-              setTimeout(normalizeContrast, 80);
+
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', runEnhancements, { once: true });
+              } else {
+                runEnhancements();
+              }
+              setTimeout(runEnhancements, 80);
             })();
           </script>
           <script>
