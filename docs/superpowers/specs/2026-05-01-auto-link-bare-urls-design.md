@@ -41,7 +41,7 @@ New utility: `utils/auto-link-urls.ts` exporting:
 
 ```ts
 export type LinkSegment = { type: 'text' | 'url'; value: string };
-export const URL_PATTERN_SOURCE = "(https?:\\/\\/[^\\s<>\"')\\]]+)";
+export const URL_PATTERN_SOURCE = "https?:\\/\\/[^\\s<>\"')\\]]+";
 export function splitTextOnUrls(text: string): LinkSegment[];
 ```
 
