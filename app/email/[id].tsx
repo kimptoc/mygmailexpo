@@ -24,6 +24,7 @@ import FolderSelectionModal from '@/components/FolderSelectionModal';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActionButtonColors } from '@/hooks/use-tint-contrast';
+import { getSelectionAction } from '@/utils/folder-actions';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
@@ -119,26 +120,26 @@ const EmailDetailScreen = () => {
     }
   };
 
-  const handleRemoveLabel = async () => {
-    if (!folderId) return;
+  const handleArchiveOrRemove = async () => {
     setActionLoading(true);
-    const removedLabelId = folderId;
+    const sourceFolderId = folderId ?? 'INBOX';
+    const isArchive = sourceFolderId === 'INBOX';
     try {
-      await removeLabelFromEmails([id], removedLabelId);
+      await removeLabelFromEmails([id], sourceFolderId);
       showUndoToast(
-        '1 email removed',
+        isArchive ? '1 email archived' : '1 email removed',
         {
           id: `remove-label-${id}-${Date.now()}`,
           label: 'Undo',
           undo: async () => {
-            await addLabelsToEmails([id], [removedLabelId]);
+            await addLabelsToEmails([id], [sourceFolderId]);
           }
         }
       );
       router.back();
     } catch (err: any) {
       console.error('Error removing label:', err);
-      showToast(err.message || 'Failed to remove label', 'error');
+      showToast(err.message || (isArchive ? 'Failed to archive email' : 'Failed to remove label'), 'error');
       setActionLoading(false);
     }
   };
@@ -168,15 +169,10 @@ const EmailDetailScreen = () => {
     }
   };
 
-  // Check if we should show Remove Label button
-  // Show if we are in a custom user label (not INBOX/System/Category)
-  const showRemoveLabel = useMemo(() => {
-    if (!folderId) return false;
-    if (folderId === 'INBOX') return false;
-    if (folderId.startsWith('CATEGORY_')) return false;
-    if (['TRASH', 'SENT', 'DRAFTS', 'SPAM', 'STARRED', 'IMPORTANT', 'UNREAD'].includes(folderId)) return false;
-    return true;
-  }, [folderId]);
+  const selectionAction = useMemo(
+    () => getSelectionAction(folderId ?? 'INBOX'),
+    [folderId]
+  );
 
   const folderName = useMemo(() => {
     if (!folderId) return '';
@@ -430,9 +426,19 @@ const EmailDetailScreen = () => {
             <ActivityIndicator color={textColor} style={{ marginRight: 16 }} />
           ) : (
             <>
-              {showRemoveLabel && (
-                <TouchableOpacity 
-                  onPress={handleRemoveLabel} 
+              {selectionAction === 'archive' && (
+                <TouchableOpacity
+                  onPress={handleArchiveOrRemove}
+                  style={[styles.actionButton, styles.actionHitSlop]}
+                  accessibilityLabel="Archive"
+                  {...{ title: "Archive" } as any}
+                >
+                  <IconSymbol name="archivebox" size={isLargeScreen ? 28 : 22} color={textColor} />
+                </TouchableOpacity>
+              )}
+              {selectionAction === 'remove-label' && (
+                <TouchableOpacity
+                  onPress={handleArchiveOrRemove}
                   style={[styles.actionButton, styles.actionHitSlop]}
                   accessibilityLabel="Remove label"
                   {...{ title: "Remove label" } as any}
@@ -440,8 +446,8 @@ const EmailDetailScreen = () => {
                   <IconSymbol name="tag.slash" size={isLargeScreen ? 28 : 22} color={textColor} />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity 
-                onPress={() => setShowFolderModal(true)} 
+              <TouchableOpacity
+                onPress={() => setShowFolderModal(true)}
                 style={[styles.actionButton, styles.actionHitSlop]}
                 accessibilityLabel="Move to folder"
                 {...{ title: "Move to folder" } as any}
