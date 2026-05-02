@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 import { getSelectionAction } from '@/utils/folder-actions';
 import { splitTextOnUrls, URL_PATTERN_SOURCE } from '@/utils/auto-link-urls';
+import { emailLoadErrorMessage } from '@/utils/email-load-error';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
@@ -113,13 +114,9 @@ const EmailDetailScreen = () => {
       if (detail.isUnread) {
         await markAsRead(id);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading email:', err);
-      if (err?.status === 404) {
-        setError('Email not found — it may have been deleted');
-      } else {
-        setError(err.message || 'Failed to load email');
-      }
+      setError(emailLoadErrorMessage(err));
     } finally {
       setLoading(false);
     }
