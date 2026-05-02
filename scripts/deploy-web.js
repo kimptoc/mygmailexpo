@@ -69,6 +69,13 @@ try {
     html = html.replace(/src="\/_expo\//g, 'src="/mygmailexpo/_expo/');
     html = html.replace(/href="\/_expo\//g, 'href="/mygmailexpo/_expo/');
     fs.writeFileSync(indexPath, html);
+
+    // SPA fallback: GitHub Pages serves 404.html for any unmatched path,
+    // so writing the fixed index.html content to 404.html lets the SPA
+    // boot and client-side router resolve dynamic routes (e.g. /email/{id}).
+    const notFoundPath = path.join(tempDir, '404.html');
+    fs.writeFileSync(notFoundPath, html);
+    console.log('Wrote SPA fallback 404.html');
   }
 
   // Create .nojekyll file
