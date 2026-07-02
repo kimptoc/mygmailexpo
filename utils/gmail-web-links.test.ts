@@ -6,6 +6,12 @@ describe('getGmailMessageUrl', () => {
       'https://mail.google.com/mail/u/0/#all/18d2f3a4b5c6'
     );
   });
+
+  it('url-encodes the thread id', () => {
+    expect(getGmailMessageUrl('abc/def')).toBe(
+      'https://mail.google.com/mail/u/0/#all/abc%2Fdef'
+    );
+  });
 });
 
 describe('getGmailFolderUrl', () => {
