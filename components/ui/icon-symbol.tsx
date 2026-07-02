@@ -39,6 +39,7 @@ const MAPPING = {
   'exclamationmark.triangle': 'warning',
   'info.circle': 'info',
   'xmark.circle.fill': 'cancel',
+  'arrow.up.right.square': 'open-in-new',
 } as IconMapping;
 
 /**
