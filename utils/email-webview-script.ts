@@ -35,6 +35,7 @@ export function getEmailWebViewInjectedJavaScript(): string {
       if (typeof ResizeObserver !== 'undefined') {
         var ro = new ResizeObserver(reportHeight);
         ro.observe(document.documentElement);
+        window.addEventListener('unload', function () { ro.disconnect(); });
       }
     })();
     true;

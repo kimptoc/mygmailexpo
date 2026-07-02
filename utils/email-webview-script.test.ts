@@ -12,4 +12,8 @@ describe('getEmailWebViewInjectedJavaScript', () => {
   it('schedules a longer-delay fallback report for slow-loading content', () => {
     expect(getEmailWebViewInjectedJavaScript()).toContain('setTimeout(reportHeight, 4000)');
   });
+
+  it('disconnects the ResizeObserver on unload to avoid leaking it', () => {
+    expect(getEmailWebViewInjectedJavaScript()).toContain('ro.disconnect()');
+  });
 });
