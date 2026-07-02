@@ -98,7 +98,7 @@ export function InboxScreen() {
   const effectiveLabelId = getEffectiveSourceLabelId(filterLabel?.id, currentFolder?.id);
   const visibleEmails = useMemo(
     () => filterEmails(emailState.emails, { labelId: filterLabel?.id, searchQuery }),
-    [emailState.emails, filterLabel, searchQuery]
+    [emailState.emails, filterLabel?.id, searchQuery]
   );
   const isFilterActive = !!filterLabel || searchQuery.trim().length > 0;
   const progressRatio =
