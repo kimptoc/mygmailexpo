@@ -27,6 +27,7 @@ import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 import { getSelectionAction } from '@/utils/folder-actions';
 import { splitTextOnUrls, URL_PATTERN_SOURCE } from '@/utils/auto-link-urls';
 import { emailLoadErrorMessage } from '@/utils/email-load-error';
+import { getEmailWebViewInjectedJavaScript } from '@/utils/email-webview-script';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
@@ -586,24 +587,7 @@ const EmailDetailScreen = () => {
                   source={{ html: htmlContent || '' }}
                   style={{ height: webViewHeight, backgroundColor: 'transparent' }}
                   scrollEnabled={false}
-                  injectedJavaScript={`
-                    (function() {
-                      function reportHeight() {
-                        var h = document.documentElement.scrollHeight;
-                        var w = document.documentElement.scrollWidth;
-                        if (h > 0) window.ReactNativeWebView.postMessage(String(h));
-                        if (w > window.innerWidth) {
-                          document.body.style.overflowX = 'hidden';
-                          document.body.style.width = window.innerWidth + 'px';
-                        }
-                      }
-                      reportHeight();
-                      setTimeout(reportHeight, 300);
-                      setTimeout(reportHeight, 1000);
-                      setTimeout(reportHeight, 2000);
-                    })();
-                    true;
-                  `}
+                  injectedJavaScript={getEmailWebViewInjectedJavaScript()}
                   onMessage={(event: any) => {
                     if (event.nativeEvent.data) {
                       setWebViewHeight(Number(event.nativeEvent.data));
