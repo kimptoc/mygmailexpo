@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
@@ -17,6 +18,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { EmailItem } from '@/components/EmailItem';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActionButtonColors } from '@/hooks/use-tint-contrast';
+import { getGmailFolderUrl } from '@/utils/gmail-web-links';
 
 const FolderScreen = () => {
   const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
@@ -62,6 +64,11 @@ const FolderScreen = () => {
     setRefreshing(false);
   };
 
+  const handleOpenInGmail = () => {
+    if (!id) return;
+    Linking.openURL(getGmailFolderUrl(id, name ? decodeURIComponent(name) : undefined));
+  };
+
   const handleEmailPress = (email: any) => {
     // Navigate to email detail screen
     router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}&folderId=${id}`);
@@ -83,7 +90,14 @@ const FolderScreen = () => {
         <ThemedText type="title" style={styles.headerTitle}>
           {decodeURIComponent(name || 'Folder')}
         </ThemedText>
-        <View style={styles.placeholder} /> {/* Placeholder for alignment */}
+        <TouchableOpacity
+          onPress={handleOpenInGmail}
+          style={styles.openInGmailButton}
+          accessibilityLabel="Open in Gmail"
+          {...{ title: "Open in Gmail" } as any}
+        >
+          <IconSymbol name="arrow.up.right.square" size={22} color={textColor} />
+        </TouchableOpacity>
       </ThemedView>
 
       {error ? (
@@ -159,8 +173,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
   },
-  placeholder: {
-    width: 40, // Same width as backButton for alignment
+  openInGmailButton: {
+    padding: 8,
+    marginLeft: 8,
+    minWidth: 40,
+    alignItems: 'center',
   },
   errorContainer: {
     flex: 1,

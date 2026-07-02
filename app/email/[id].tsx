@@ -27,6 +27,7 @@ import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 import { getSelectionAction } from '@/utils/folder-actions';
 import { splitTextOnUrls, URL_PATTERN_SOURCE } from '@/utils/auto-link-urls';
 import { emailLoadErrorMessage } from '@/utils/email-load-error';
+import { getGmailMessageUrl } from '@/utils/gmail-web-links';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
@@ -175,6 +176,11 @@ const EmailDetailScreen = () => {
     () => getSelectionAction(folderId ?? 'INBOX'),
     [folderId]
   );
+
+  const handleOpenInGmail = () => {
+    if (!email) return;
+    Linking.openURL(getGmailMessageUrl(email.threadId));
+  };
 
   const folderName = useMemo(() => {
     if (!folderId) return '';
@@ -517,6 +523,14 @@ const EmailDetailScreen = () => {
                 {...{ title: "Move to folder" } as any}
               >
                 <IconSymbol name="folder" size={isLargeScreen ? 28 : 22} color={textColor} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleOpenInGmail}
+                style={[styles.actionButton, styles.actionHitSlop]}
+                accessibilityLabel="Open in Gmail"
+                {...{ title: "Open in Gmail" } as any}
+              >
+                <IconSymbol name="arrow.up.right.square" size={isLargeScreen ? 28 : 22} color={textColor} />
               </TouchableOpacity>
             </>
           )}
