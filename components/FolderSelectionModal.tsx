@@ -24,6 +24,8 @@ interface FolderSelectionModalProps {
   onClose: () => void;
   onSelectFolder: (folder: GmailLabel) => void;
   currentFolderId?: string;
+  title?: string;
+  recordRecent?: boolean;
 }
 
 const MIN_COLUMN_WIDTH = 240;
@@ -34,6 +36,8 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   onClose,
   onSelectFolder,
   currentFolderId,
+  title = 'Select Folder',
+  recordRecent = true,
 }) => {
   const { folders, recentFolders, loading, error, loadFolders, addToRecentFolders } = useFolders();
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,7 +89,9 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   ), [filteredFolders, folders, recentFolders, searchQuery, columnCount]);
 
   const handleSelectFolder = (folder: GmailLabel) => {
-    addToRecentFolders(folder);
+    if (recordRecent) {
+      addToRecentFolders(folder);
+    }
     onSelectFolder(folder);
     onClose();
   };
@@ -146,7 +152,7 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={[styles.modalContainer, { backgroundColor }]} onPress={() => {}}>
           <ThemedView style={[styles.header, { borderBottomColor: separatorColor }]}>
-            <ThemedText type="title" style={styles.title}>Select Folder</ThemedText>
+            <ThemedText type="title" style={styles.title}>{title}</ThemedText>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <IconSymbol name="xmark" size={24} color={textColor} />
             </TouchableOpacity>
