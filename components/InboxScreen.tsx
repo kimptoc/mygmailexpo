@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Pressable,
   TouchableOpacity,
+  TextInput,
   useWindowDimensions,
   Animated,
   Easing,
@@ -29,6 +30,7 @@ import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 import { useEmailSelection } from '@/hooks/useEmailSelection';
 import { getSelectionAction } from '@/utils/folder-actions';
+import { filterEmails } from '@/utils/email-filter';
 
 import { EmailItemSkeleton } from '@/components/EmailItemSkeleton';
 
@@ -83,9 +85,18 @@ export function InboxScreen() {
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
   const [labelsMap, setLabelsMap] = useState<Record<string, GmailLabel>>({});
   const [showComposeModal, setShowComposeModal] = useState(false);
+  const [showFilterBar, setShowFilterBar] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterLabel, setFilterLabel] = useState<GmailLabel | null>(null);
+  const [showLabelFilterModal, setShowLabelFilterModal] = useState(false);
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
   const userEmail = authState.status === 'authenticated' ? authState.userEmail : '';
+  const visibleEmails = useMemo(
+    () => filterEmails(emailState.emails, { labelId: filterLabel?.id, searchQuery }),
+    [emailState.emails, filterLabel?.id, searchQuery]
+  );
+  const isFilterActive = !!filterLabel || searchQuery.trim().length > 0;
   const progressRatio =
     actionLoading && batchProgress && batchProgress.total > 0
       ? batchProgress.processed / batchProgress.total
@@ -201,14 +212,14 @@ export function InboxScreen() {
   }, [handleRefresh]);
 
   const handleSelectAll = useCallback(() => {
-    const allIds = emailState.emails.map(e => e.id);
-    const allSelected = selectedIds.size === emailState.emails.length && emailState.emails.length > 0;
+    const allIds = visibleEmails.map(e => e.id);
+    const allSelected = selectedIds.size === visibleEmails.length && visibleEmails.length > 0;
     if (allSelected) {
       clearSelection();
     } else {
       selectAll(allIds);
     }
-  }, [emailState.emails, selectedIds.size, selectAll, clearSelection]);
+  }, [visibleEmails, selectedIds.size, selectAll, clearSelection]);
 
   const handleRemoveLabelBatch = useCallback(async (idsToProcess?: string[]) => {
     setActionLoading(true);
@@ -255,9 +266,14 @@ export function InboxScreen() {
           }
         );
       }
-      
+
+      const succeededIds = new Set(result.succeeded);
+      setEmailState(prev => ({
+        ...prev,
+        emails: prev.emails.filter(e => !succeededIds.has(e.id)),
+      }));
       clearSelection();
-      handleRefresh();
+      loadLabels();
 
     } catch (error: any) {
       console.error('Error removing labels:', error);
@@ -266,7 +282,7 @@ export function InboxScreen() {
       setActionLoading(false);
       setBatchProgress(null);
     }
-  }, [selectedIds, currentFolder, removeLabelFromEmails, addLabelsToEmails, moveEmailsToLabel, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
+  }, [selectedIds, currentFolder, removeLabelFromEmails, addLabelsToEmails, moveEmailsToLabel, clearSelection, loadLabels, showToast, showUndoToast, emailState.emails]);
 
   const handleMoveToFolder = useCallback(async (targetLabelId: string, idsToProcess?: string[]) => {
     setActionLoading(true);
@@ -312,9 +328,14 @@ export function InboxScreen() {
           }
         );
       }
-      
+
+      const succeededIds = new Set(result.succeeded);
+      setEmailState(prev => ({
+        ...prev,
+        emails: prev.emails.filter(e => !succeededIds.has(e.id)),
+      }));
       clearSelection();
-      handleRefresh();
+      loadLabels();
 
     } catch (error: any) {
       console.error('Error moving emails:', error);
@@ -323,7 +344,7 @@ export function InboxScreen() {
       setActionLoading(false);
       setBatchProgress(null);
     }
-  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
+  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, loadLabels, showToast, showUndoToast, emailState.emails]);
 
   const handleRetryBatch = () => {
     if (!batchErrorDetails) return;
@@ -349,9 +370,21 @@ export function InboxScreen() {
       setShowFolderModal(false);
     } else {
       setCurrentFolder(folder);
+      setFilterLabel(null);
+      setSearchQuery('');
+      setShowFilterBar(false);
       loadEmails(folder.id);
     }
   }, [isSelectionMode, loadEmails, handleMoveToFolder]);
+
+  const handleSelectFilterLabel = useCallback((label: GmailLabel) => {
+    setFilterLabel(label);
+    setShowLabelFilterModal(false);
+  }, []);
+
+  const handleClearFilterLabel = useCallback(() => {
+    setFilterLabel(null);
+  }, []);
 
   const selectionAction = getSelectionAction(currentFolder?.id ?? 'INBOX');
 
@@ -393,6 +426,17 @@ export function InboxScreen() {
   const renderEmpty = useCallback(() => {
     if (emailState.isLoading) return null;
 
+    if (isFilterActive && emailState.emails.length > 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <IconSymbol name="magnifyingglass" size={64} color={textColor + '40'} />
+          <Text style={[styles.emptyText, { color: textColor + '80' }]}>
+            No emails match your filter
+          </Text>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.emptyContainer}>
         <IconSymbol name="tray.fill" size={64} color={textColor + '40'} />
@@ -401,7 +445,7 @@ export function InboxScreen() {
         </Text>
       </View>
     );
-  }, [emailState.isLoading, currentFolder, textColor]);
+  }, [emailState.isLoading, emailState.emails.length, isFilterActive, currentFolder, textColor]);
 
   if (emailState.isLoading && emailState.emails.length === 0) {
     return (
@@ -432,6 +476,13 @@ export function InboxScreen() {
         onClose={() => setShowFolderModal(false)}
         onSelectFolder={handleSelectFolder}
         currentFolderId={currentFolder?.id}
+      />
+      <FolderSelectionModal
+        visible={showLabelFilterModal}
+        onClose={() => setShowLabelFilterModal(false)}
+        onSelectFolder={handleSelectFilterLabel}
+        currentFolderId={filterLabel?.id}
+        title="Filter by Label"
       />
       <ComposeEmailModal
         visible={showComposeModal}
@@ -498,7 +549,7 @@ export function InboxScreen() {
             <Pressable onPress={handleSelectAll} style={styles.selectionBarButton}>
               <IconSymbol
                 name={
-                  selectedIds.size === emailState.emails.length && emailState.emails.length > 0
+                  selectedIds.size === visibleEmails.length && visibleEmails.length > 0
                     ? 'checkmark.circle'
                     : 'circle'
                 }
@@ -548,12 +599,66 @@ export function InboxScreen() {
               {userEmail}
             </Text>
           </View>
-          <Pressable
-            style={[styles.signOutButton, { borderColor: tintColor }]}
-            onPress={signOut}
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => setShowFilterBar(prev => !prev)}
+              style={styles.filterToggleButton}
+              accessibilityLabel="Filter emails"
+            >
+              <IconSymbol
+                name="magnifyingglass"
+                size={22}
+                color={showFilterBar || isFilterActive ? tintColor : textColor}
+              />
+            </TouchableOpacity>
+            <Pressable
+              style={[styles.signOutButton, { borderColor: tintColor }]}
+              onPress={signOut}
+            >
+              <Text style={[styles.signOutText, { color: tintColor }]}>Sign Out</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {!isSelectionMode && showFilterBar && (
+        <View style={[styles.filterBar, { borderBottomColor: textColor + '20' }]}>
+          <View style={[styles.searchInputContainer, { borderColor: textColor + '30' }]}>
+            <IconSymbol name="magnifyingglass" size={16} color={textColor + '80'} />
+            <TextInput
+              style={[styles.searchInput, { color: textColor }]}
+              placeholder="Search subject, sender, or snippet"
+              placeholderTextColor={textColor + '80'}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityLabel="Clear search">
+                <IconSymbol name="xmark.circle.fill" size={16} color={textColor + '60'} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.labelFilterChip,
+              { borderColor: filterLabel ? tintColor : textColor + '30' },
+            ]}
+            onPress={() => setShowLabelFilterModal(true)}
           >
-            <Text style={[styles.signOutText, { color: tintColor }]}>Sign Out</Text>
-          </Pressable>
+            <IconSymbol name="tag" size={16} color={filterLabel ? tintColor : textColor + '80'} />
+            <Text
+              style={[styles.labelFilterText, { color: filterLabel ? tintColor : textColor + '80' }]}
+              numberOfLines={1}
+            >
+              {filterLabel ? filterLabel.name : 'Label'}
+            </Text>
+            {filterLabel && (
+              <Pressable onPress={handleClearFilterLabel} hitSlop={8} accessibilityLabel="Clear label filter">
+                <IconSymbol name="xmark" size={14} color={tintColor} />
+              </Pressable>
+            )}
+          </TouchableOpacity>
         </View>
       )}
 
@@ -583,7 +688,7 @@ export function InboxScreen() {
         </View>
       ) : (
         <FlatList
-          data={emailState.emails}
+          data={visibleEmails}
           renderItem={renderEmail}
           keyExtractor={(item) => item.id}
           refreshControl={
@@ -597,7 +702,7 @@ export function InboxScreen() {
           ListFooterComponent={renderFooter}
           onEndReached={loadMoreEmails}
           onEndReachedThreshold={0.5}
-          contentContainerStyle={emailState.emails.length === 0 ? styles.emptyList : undefined}
+          contentContainerStyle={visibleEmails.length === 0 ? styles.emptyList : undefined}
         />
       )}
       {!isSelectionMode && (
@@ -659,6 +764,55 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterToggleButton: {
+    padding: 8,
+    minWidth: 40,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    padding: 0,
+  },
+  labelFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    maxWidth: 130,
+    gap: 4,
+  },
+  labelFilterText: {
+    fontSize: 13,
+    fontWeight: '500',
+    flexShrink: 1,
   },
   selectionActionButton: {
     padding: 12,
