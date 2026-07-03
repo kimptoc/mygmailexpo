@@ -40,6 +40,8 @@
       "baseUrl": "/mygmailexpo"
     },
     "plugins": [
+      "./plugins/withGradleMemory",
+      "./plugins/withPodfileModularHeaders",
       "expo-router",
       [
         "expo-splash-screen",
