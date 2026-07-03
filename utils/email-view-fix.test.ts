@@ -1,3 +1,5 @@
+import { getEmailWebViewInjectedJavaScript } from './email-webview-script';
+
 describe('Email View Scroll Fix', () => {
   const generateHtmlWithViewportFix = () => {
     return `
@@ -58,23 +60,7 @@ describe('Email View Scroll Fix', () => {
   });
 
   describe('JavaScript height reporting fix', () => {
-    const injectedJs = `
-      (function() {
-        function reportHeight() {
-          var h = document.documentElement.scrollHeight;
-          var w = document.documentElement.scrollWidth;
-          if (h > 0) window.ReactNativeWebView.postMessage(String(h));
-          if (w > window.innerWidth) {
-            document.body.style.overflowX = 'hidden';
-            document.body.style.width = window.innerWidth + 'px';
-          }
-        }
-        reportHeight();
-        setTimeout(reportHeight, 300);
-        setTimeout(reportHeight, 1000);
-        setTimeout(reportHeight, 2000);
-      })();
-    `;
+    const injectedJs = getEmailWebViewInjectedJavaScript();
 
     it('checks both height and width for overflow', () => {
       expect(injectedJs).toContain('scrollHeight');
@@ -88,7 +74,16 @@ describe('Email View Scroll Fix', () => {
 
     it('reports height multiple times for dynamic content', () => {
       const count = (injectedJs.match(/reportHeight/g) || []).length;
-      expect(count).toBe(5);
+      expect(count).toBeGreaterThanOrEqual(5);
+    });
+
+    it('keeps observing layout changes via ResizeObserver so slow-loading emails stay fully scrollable', () => {
+      expect(injectedJs).toContain('ResizeObserver');
+    });
+
+    it('re-reports height once images finish loading', () => {
+      expect(injectedJs).toContain('document.images');
+      expect(injectedJs).toContain("addEventListener('load'");
     });
   });
 });
