@@ -27,6 +27,8 @@ import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 import { getSelectionAction } from '@/utils/folder-actions';
 import { splitTextOnUrls, URL_PATTERN_SOURCE } from '@/utils/auto-link-urls';
 import { emailLoadErrorMessage } from '@/utils/email-load-error';
+import { getEmailWebViewInjectedJavaScript } from '@/utils/email-webview-script';
+import { getGmailMessageUrl } from '@/utils/gmail-web-links';
 
 const EmailDetailScreen = () => {
   const { id, folderId } = useLocalSearchParams<{ id: string; folderId?: string }>();
@@ -175,6 +177,11 @@ const EmailDetailScreen = () => {
     () => getSelectionAction(folderId ?? 'INBOX'),
     [folderId]
   );
+
+  const handleOpenInGmail = () => {
+    if (!email) return;
+    Linking.openURL(getGmailMessageUrl(email.threadId));
+  };
 
   const folderName = useMemo(() => {
     if (!folderId) return '';
@@ -518,6 +525,14 @@ const EmailDetailScreen = () => {
               >
                 <IconSymbol name="folder" size={isLargeScreen ? 28 : 22} color={textColor} />
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleOpenInGmail}
+                style={[styles.actionButton, styles.actionHitSlop]}
+                accessibilityLabel="Open in Gmail"
+                {...{ title: "Open in Gmail" } as any}
+              >
+                <IconSymbol name="arrow.up.right.square" size={isLargeScreen ? 28 : 22} color={textColor} />
+              </TouchableOpacity>
             </>
           )}
         </View>
@@ -586,24 +601,7 @@ const EmailDetailScreen = () => {
                   source={{ html: htmlContent || '' }}
                   style={{ height: webViewHeight, backgroundColor: 'transparent' }}
                   scrollEnabled={false}
-                  injectedJavaScript={`
-                    (function() {
-                      function reportHeight() {
-                        var h = document.documentElement.scrollHeight;
-                        var w = document.documentElement.scrollWidth;
-                        if (h > 0) window.ReactNativeWebView.postMessage(String(h));
-                        if (w > window.innerWidth) {
-                          document.body.style.overflowX = 'hidden';
-                          document.body.style.width = window.innerWidth + 'px';
-                        }
-                      }
-                      reportHeight();
-                      setTimeout(reportHeight, 300);
-                      setTimeout(reportHeight, 1000);
-                      setTimeout(reportHeight, 2000);
-                    })();
-                    true;
-                  `}
+                  injectedJavaScript={getEmailWebViewInjectedJavaScript()}
                   onMessage={(event: any) => {
                     if (event.nativeEvent.data) {
                       setWebViewHeight(Number(event.nativeEvent.data));
