@@ -266,9 +266,14 @@ export function InboxScreen() {
           }
         );
       }
-      
+
+      const succeededIds = new Set(result.succeeded);
+      setEmailState(prev => ({
+        ...prev,
+        emails: prev.emails.filter(e => !succeededIds.has(e.id)),
+      }));
       clearSelection();
-      handleRefresh();
+      loadLabels();
 
     } catch (error: any) {
       console.error('Error removing labels:', error);
@@ -277,7 +282,7 @@ export function InboxScreen() {
       setActionLoading(false);
       setBatchProgress(null);
     }
-  }, [selectedIds, currentFolder, removeLabelFromEmails, addLabelsToEmails, moveEmailsToLabel, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
+  }, [selectedIds, currentFolder, removeLabelFromEmails, addLabelsToEmails, moveEmailsToLabel, clearSelection, loadLabels, showToast, showUndoToast, emailState.emails]);
 
   const handleMoveToFolder = useCallback(async (targetLabelId: string, idsToProcess?: string[]) => {
     setActionLoading(true);
@@ -323,9 +328,14 @@ export function InboxScreen() {
           }
         );
       }
-      
+
+      const succeededIds = new Set(result.succeeded);
+      setEmailState(prev => ({
+        ...prev,
+        emails: prev.emails.filter(e => !succeededIds.has(e.id)),
+      }));
       clearSelection();
-      handleRefresh();
+      loadLabels();
 
     } catch (error: any) {
       console.error('Error moving emails:', error);
@@ -334,7 +344,7 @@ export function InboxScreen() {
       setActionLoading(false);
       setBatchProgress(null);
     }
-  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
+  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, loadLabels, showToast, showUndoToast, emailState.emails]);
 
   const handleRetryBatch = () => {
     if (!batchErrorDetails) return;
