@@ -1,4 +1,4 @@
-import { matchesEmailSearch, filterEmails, getEffectiveSourceLabelId, FilterableEmail } from './email-filter';
+import { matchesEmailSearch, filterEmails, FilterableEmail } from './email-filter';
 
 const makeEmail = (overrides: Partial<FilterableEmail> = {}): FilterableEmail => ({
   subject: 'Quarterly report',
@@ -60,21 +60,5 @@ describe('filterEmails', () => {
   it('excludes everything when the label filter matches nothing', () => {
     const result = filterEmails(emails, { labelId: 'Label_does_not_exist' });
     expect(result).toEqual([]);
-  });
-});
-
-describe('getEffectiveSourceLabelId', () => {
-  it('prefers the active filter label over the current folder', () => {
-    expect(getEffectiveSourceLabelId('Label_finance', 'INBOX')).toBe('Label_finance');
-  });
-
-  it('falls back to the current folder when no filter label is set', () => {
-    expect(getEffectiveSourceLabelId(null, 'Label_work')).toBe('Label_work');
-    expect(getEffectiveSourceLabelId(undefined, 'Label_work')).toBe('Label_work');
-  });
-
-  it('falls back to INBOX when neither is set', () => {
-    expect(getEffectiveSourceLabelId(null, null)).toBe('INBOX');
-    expect(getEffectiveSourceLabelId(undefined, undefined)).toBe('INBOX');
   });
 });

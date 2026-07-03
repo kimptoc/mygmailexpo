@@ -30,7 +30,7 @@ import { useActionButtonColors } from '@/hooks/use-tint-contrast';
 
 import { useEmailSelection } from '@/hooks/useEmailSelection';
 import { getSelectionAction } from '@/utils/folder-actions';
-import { filterEmails, getEffectiveSourceLabelId } from '@/utils/email-filter';
+import { filterEmails } from '@/utils/email-filter';
 
 import { EmailItemSkeleton } from '@/components/EmailItemSkeleton';
 
@@ -92,10 +92,6 @@ export function InboxScreen() {
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
   const userEmail = authState.status === 'authenticated' ? authState.userEmail : '';
-  // When a filter label is active, batch actions (remove/move) should
-  // operate on that label, not the folder the view is actually loaded
-  // from — see issue #21.
-  const effectiveLabelId = getEffectiveSourceLabelId(filterLabel?.id, currentFolder?.id);
   const visibleEmails = useMemo(
     () => filterEmails(emailState.emails, { labelId: filterLabel?.id, searchQuery }),
     [emailState.emails, filterLabel?.id, searchQuery]
@@ -194,9 +190,10 @@ export function InboxScreen() {
     if (isSelectionMode) {
       toggleSelection(email.id);
     } else {
-      router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}&folderId=${encodeURIComponent(effectiveLabelId)}`);
+      const folderId = currentFolder?.id || 'INBOX';
+      router.push(`/email/${email.id}?subject=${encodeURIComponent(email.subject)}&folderId=${encodeURIComponent(folderId)}`);
     }
-  }, [isSelectionMode, toggleSelection, effectiveLabelId]);
+  }, [isSelectionMode, toggleSelection, currentFolder]);
 
   const handleEmailLongPress = useCallback((email: Email) => {
     if (!isSelectionMode) {
@@ -227,7 +224,7 @@ export function InboxScreen() {
   const handleRemoveLabelBatch = useCallback(async (idsToProcess?: string[]) => {
     setActionLoading(true);
     const ids = Array.isArray(idsToProcess) ? idsToProcess : Array.from(selectedIds);
-    const sourceFolderId = effectiveLabelId;
+    const sourceFolderId = currentFolder?.id ?? 'INBOX';
     setBatchProgress({
       processed: 0,
       total: ids.length,
@@ -280,12 +277,12 @@ export function InboxScreen() {
       setActionLoading(false);
       setBatchProgress(null);
     }
-  }, [selectedIds, effectiveLabelId, removeLabelFromEmails, addLabelsToEmails, moveEmailsToLabel, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
+  }, [selectedIds, currentFolder, removeLabelFromEmails, addLabelsToEmails, moveEmailsToLabel, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
 
   const handleMoveToFolder = useCallback(async (targetLabelId: string, idsToProcess?: string[]) => {
     setActionLoading(true);
     const ids = Array.isArray(idsToProcess) ? idsToProcess : Array.from(selectedIds);
-    const sourceFolderId = effectiveLabelId;
+    const sourceFolderId = currentFolder?.id || 'INBOX';
     setBatchProgress({
       processed: 0,
       total: ids.length,
@@ -337,7 +334,7 @@ export function InboxScreen() {
       setActionLoading(false);
       setBatchProgress(null);
     }
-  }, [selectedIds, moveEmailsToLabel, effectiveLabelId, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
+  }, [selectedIds, moveEmailsToLabel, currentFolder, clearSelection, handleRefresh, showToast, showUndoToast, emailState.emails]);
 
   const handleRetryBatch = () => {
     if (!batchErrorDetails) return;
@@ -379,7 +376,7 @@ export function InboxScreen() {
     setFilterLabel(null);
   }, []);
 
-  const selectionAction = getSelectionAction(effectiveLabelId);
+  const selectionAction = getSelectionAction(currentFolder?.id ?? 'INBOX');
 
   const renderEmail = useCallback(
     ({ item }: { item: Email }) => (

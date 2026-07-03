@@ -22,14 +22,3 @@ export function filterEmails<T extends FilterableEmail>(
     return matchesEmailSearch(email, searchQuery ?? '');
   });
 }
-
-// When a view (e.g. Inbox) is additionally filtered by another label, actions
-// like "remove label" and "move" should operate on that filter label rather
-// than the view's underlying folder — otherwise they silently act on the
-// wrong label (see issue #21).
-export function getEffectiveSourceLabelId(
-  filterLabelId: string | null | undefined,
-  currentFolderId: string | null | undefined
-): string {
-  return filterLabelId || currentFolderId || 'INBOX';
-}
