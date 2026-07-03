@@ -53,3 +53,6 @@ dist/*
 
 build*.apk
 build*.aab
+
+# auto-generated build metadata
+constants/build-info.json
