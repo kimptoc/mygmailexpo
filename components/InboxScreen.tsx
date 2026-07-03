@@ -476,7 +476,6 @@ export function InboxScreen() {
         onSelectFolder={handleSelectFilterLabel}
         currentFolderId={filterLabel?.id}
         title="Filter by Label"
-        recordRecent={false}
       />
       <ComposeEmailModal
         visible={showComposeModal}

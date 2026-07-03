@@ -25,7 +25,6 @@ interface FolderSelectionModalProps {
   onSelectFolder: (folder: GmailLabel) => void;
   currentFolderId?: string;
   title?: string;
-  recordRecent?: boolean;
 }
 
 const MIN_COLUMN_WIDTH = 240;
@@ -37,7 +36,6 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   onSelectFolder,
   currentFolderId,
   title = 'Select Folder',
-  recordRecent = true,
 }) => {
   const { folders, recentFolders, loading, error, loadFolders, addToRecentFolders } = useFolders();
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,9 +87,7 @@ const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
   ), [filteredFolders, folders, recentFolders, searchQuery, columnCount]);
 
   const handleSelectFolder = (folder: GmailLabel) => {
-    if (recordRecent) {
-      addToRecentFolders(folder);
-    }
+    addToRecentFolders(folder);
     onSelectFolder(folder);
     onClose();
   };
