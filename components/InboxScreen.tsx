@@ -92,9 +92,9 @@ export function InboxScreen() {
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
   const userEmail = authState.status === 'authenticated' ? authState.userEmail : '';
-  // When a filter label is active, batch actions (remove/move) and the
-  // "current folder" chip should operate on that label, not the folder the
-  // view is actually loaded from — see issue #21.
+  // When a filter label is active, batch actions (remove/move) should
+  // operate on that label, not the folder the view is actually loaded
+  // from — see issue #21.
   const effectiveLabelId = getEffectiveSourceLabelId(filterLabel?.id, currentFolder?.id);
   const visibleEmails = useMemo(
     () => filterEmails(emailState.emails, { labelId: filterLabel?.id, searchQuery }),
@@ -391,10 +391,10 @@ export function InboxScreen() {
         isSelected={selectedIds.has(item.id)}
         isSelectionMode={isSelectionMode}
         labels={labelsMap}
-        currentFolderId={effectiveLabelId}
+        currentFolderId={currentFolder?.id || 'INBOX'}
       />
     ),
-    [handleEmailPress, handleEmailLongPress, toggleSelection, selectedIds, isSelectionMode, labelsMap, effectiveLabelId]
+    [handleEmailPress, handleEmailLongPress, toggleSelection, selectedIds, isSelectionMode, labelsMap, currentFolder]
   );
 
   const renderFooter = useCallback(() => {
