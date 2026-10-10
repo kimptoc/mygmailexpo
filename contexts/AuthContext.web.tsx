@@ -16,10 +16,10 @@ import {
 // Required for web browser to close after auth
 WebBrowser.maybeCompleteAuthSession();
 
-// Google OAuth client IDs and secret from app.json
+// Google OAuth client ID from app.json. The client secret is kept server-side
+// in the /auth/token API route and must never appear in the client bundle.
 const googleConfig = Constants.expoConfig?.extra?.google ?? {};
 const webClientId = googleConfig.webClientId;
-const webClientSecret = googleConfig.webClientSecret;
 
 if (!webClientId) {
   console.warn(
@@ -69,8 +69,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return origin;
     }
 
-    // For production (GitHub Pages)
-    return 'https://kimptoc.github.io/mygmailexpo/';
+    // Production (EAS Hosting). Preview deployments use the same URI so the
+    // registered redirect URI always matches.
+    return 'https://mygmailexpo.expo.app/';
   })();
 
   // Google OAuth endpoints
@@ -131,8 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await restoreWebSession({
         storedSession: parsedStoredSession,
         refreshToken,
-        refreshAccessToken: (token) =>
-          refreshAccessTokenWithToken(token, webClientId, webClientSecret),
+        refreshAccessToken: (token) => refreshAccessTokenWithToken(token),
         validateAccessToken: async (accessToken) => {
           const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
             headers: { Authorization: `Bearer ${accessToken}` },
@@ -198,17 +198,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const exchangeCodeForToken = async (code: string, codeVerifier: string) => {
     console.log('Exchanging code for token...');
     try {
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      const tokenResponse = await fetch('/auth/token', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           code,
-          client_id: webClientId,
-          client_secret: webClientSecret,
-          redirect_uri: redirectUri,
-          grant_type: 'authorization_code',
           code_verifier: codeVerifier,
-        }).toString(),
+          redirect_uri: redirectUri,
+        }),
       });
 
       if (!tokenResponse.ok) {
@@ -312,7 +309,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
       if (!refreshToken) return null;
 
-      const newAccessToken = await refreshAccessTokenWithToken(refreshToken, webClientId, webClientSecret);
+      const newAccessToken = await refreshAccessTokenWithToken(refreshToken);
       if (newAccessToken) {
         setAuthState((prev) => {
           if (prev.status !== 'authenticated') return prev;

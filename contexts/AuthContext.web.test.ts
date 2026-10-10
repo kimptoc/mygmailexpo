@@ -16,11 +16,11 @@ describe('refreshAccessTokenWithToken', () => {
     } as any);
     global.fetch = fetchMock as any;
 
-    const result = await refreshAccessTokenWithToken('refresh-token', 'client-id', 'client-secret');
+    const result = await refreshAccessTokenWithToken('refresh-token');
 
     expect(result).toBe('new-token');
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://oauth2.googleapis.com/token',
+      '/auth/token',
       expect.objectContaining({ method: 'POST' })
     );
     expect(json).toHaveBeenCalled();
@@ -33,7 +33,7 @@ describe('refreshAccessTokenWithToken', () => {
     } as any);
     global.fetch = fetchMock as any;
 
-    const result = await refreshAccessTokenWithToken('refresh-token', 'client-id', 'client-secret');
+    const result = await refreshAccessTokenWithToken('refresh-token');
 
     expect(result).toBeNull();
   });

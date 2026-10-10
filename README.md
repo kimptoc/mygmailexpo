@@ -47,44 +47,15 @@ Run `npm run deploy` to [deploy to production](https://docs.expo.dev/eas/workflo
 
 Expo offers hosting for websites and API functions via EAS Hosting. See the [Getting Started](https://docs.expo.dev/eas/hosting/get-started/) guide to learn more.
 
-## GitHub Pages Deployment
+### Web Deployment
 
-To deploy to GitHub Pages:
+The web build (including the `/auth/token` API route) is deployed to EAS Hosting:
 
 ```bash
 npm run deploy:web
 ```
 
-This builds the web version and deploys it to the `gh-pages` branch.
-
-### Important: Custom Deploy Script
-
-We use a custom deploy script (`scripts/deploy-web.js`) instead of the standard `gh-pages` CLI. This is necessary because:
-
-1. **Font files live in `dist/assets/node_modules/`**: Expo bundles icon fonts (like MaterialIcons) into `dist/assets/node_modules/@expo/vector-icons/...`
-
-2. **The `gh-pages` npm package respects `.gitignore`**: Since `.gitignore` contains `node_modules/`, the gh-pages package excludes `dist/assets/node_modules/` from deployment, even though these are build artifacts, not actual dependencies.
-
-3. **Missing fonts cause infinite loading**: Without the MaterialIcons font, `useFonts()` never completes, leaving the app stuck on the loading spinner.
-
-The custom script uses git directly to copy all files from `dist/` (including `assets/node_modules/`) without any `.gitignore` filtering.
-
-### Troubleshooting
-
-If the deployed site shows an infinite spinner:
-
-1. Check if font files are returning 404:
-   ```bash
-   curl -sI "https://kimptoc.github.io/mygmailexpo/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.4e85bc9ebe07e0340c9c4fc2f6c38908.ttf"
-   ```
-   Should return `HTTP/2 200`
-
-2. Verify font exists in gh-pages branch:
-   ```bash
-   git fetch origin gh-pages && git ls-tree -r origin/gh-pages --name-only | grep MaterialIcons
-   ```
-
-3. If missing, re-run `npm run deploy:web` and check the script output confirms "Font directory exists"
+This exports the web app and runs `eas deploy --environment production`. The Google OAuth client secret is kept server-side in the `/auth/token` route and is supplied as the EAS environment variable `GOOGLE_CLIENT_SECRET` (create it with `npx eas-cli@latest env:set --name GOOGLE_CLIENT_SECRET --value <secret> --environment production --visibility sensitive` — EAS Hosting does not deploy variables with `secret` visibility). It must never be added to `app.json` or bundled into client code.
 
 
 ## Get a fresh project
