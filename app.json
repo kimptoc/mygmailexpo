@@ -34,10 +34,9 @@
       "package": "com.kimptoc.mygmailexpo"
     },
     "web": {
-      "output": "static",
+      "output": "server",
       "favicon": "./assets/images/favicon.png",
-      "bundler": "metro",
-      "baseUrl": "/mygmailexpo"
+      "bundler": "metro"
     },
     "plugins": [
       "./plugins/withGradleMemory",
@@ -71,11 +70,6 @@
       "router": {},
       "eas": {
         "projectId": "90603317-3766-4f12-8db2-2b5783bc6d72"
-      },
-      "google": {
-        "webClientId": "767000337742-8ld4hre5nr02mu27dc5hj3i0r05p2vg4.apps.googleusercontent.com",
-        "iosClientId": "767000337742-bfpst90t6dbi14qal5k67la0omjifqgg.apps.googleusercontent.com",
-        "webClientSecret": "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"
       }
     },
     "owner": "kimptoc",

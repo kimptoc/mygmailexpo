@@ -1,33 +1,26 @@
 export async function refreshAccessTokenWithToken(
-  refreshToken: string,
-  clientId?: string,
-  clientSecret?: string
+  refreshToken: string
 ): Promise<string | null> {
-  if (!clientId) {
-    console.error('Token refresh failed: missing clientId');
+  if (!refreshToken) {
+    console.error('Token refresh failed: missing refreshToken');
     return null;
   }
 
   console.log('Attempting to refresh access token...');
   try {
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    const response = await fetch('/auth/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret ?? '',
-        refresh_token: refreshToken,
-        grant_type: 'refresh_token',
-      }).toString(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text();
+    if (!response.ok) {
+      const errorData = await response.text();
       console.error('Token refresh failed:', errorData);
       return null;
     }
 
-    const tokens = await tokenResponse.json();
+    const tokens = await response.json();
     if (tokens.access_token) {
       console.log('Access token refreshed successfully');
       return tokens.access_token;

@@ -8,22 +8,11 @@ import {
   isSuccessResponse,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
-import Constants from 'expo-constants';
+import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from '@/constants/google';
 
-// Google OAuth client IDs from app.json
-const googleConfig =
-  Constants.expoConfig?.extra?.google ??
-  (Constants.manifest as any)?.extra?.google ??
-  (Constants.manifest2 as any)?.extra?.google ??
-  {};
-const webClientId = googleConfig.webClientId;
-const iosClientId = googleConfig.iosClientId;
-
-if (!webClientId || !iosClientId) {
-  console.warn(
-    'Google OAuth client IDs are missing. Please ensure they are set in app.json under extra.google'
-  );
-}
+// Google OAuth client IDs (public, not secrets) come from a shared constant.
+const webClientId = GOOGLE_WEB_CLIENT_ID;
+const iosClientId = GOOGLE_IOS_CLIENT_ID;
 
 // Gmail API scopes
 const SCOPES = [
@@ -51,18 +40,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>({ status: 'unauthenticated' });
 
   useEffect(() => {
-    console.log('[Debug] Platform:', Platform.OS);
-    console.log('[Debug] Constants keys:', Object.keys(Constants));
-    console.log('[Debug] expoConfig keys:', Object.keys(Constants.expoConfig || {}));
-    console.log('[Debug] manifest keys:', Object.keys(Constants.manifest || {}));
-    console.log('[Debug] manifest2 keys:', Object.keys(Constants.manifest2 || {}));
-    console.log('[Debug] extra:', Constants.expoConfig?.extra || (Constants.manifest as any)?.extra || (Constants.manifest2 as any)?.extra);
-    
-    console.log('[Debug] Resolved webClientId:', webClientId);
-    console.log('[Debug] Resolved iosClientId:', iosClientId);
-
     if (!iosClientId) {
-      console.error('[Debug] CRITICAL: iosClientId is missing! Skipping GoogleSignin.configure to prevent crash.');
+      console.error('iosClientId is missing; skipping GoogleSignin.configure.');
       return;
     }
 
