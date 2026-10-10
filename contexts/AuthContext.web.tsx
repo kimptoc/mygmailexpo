@@ -4,7 +4,7 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import Constants from 'expo-constants';
+import { GOOGLE_WEB_CLIENT_ID } from '@/constants/google';
 import { refreshAccessTokenWithToken } from './authRefresh.web';
 import {
   EVENT_REFRESH_GUARD_MS,
@@ -16,16 +16,9 @@ import {
 // Required for web browser to close after auth
 WebBrowser.maybeCompleteAuthSession();
 
-// Google OAuth client ID from app.json. The client secret is kept server-side
-// in the /auth/token API route and must never appear in the client bundle.
-const googleConfig = Constants.expoConfig?.extra?.google ?? {};
-const webClientId = googleConfig.webClientId;
-
-if (!webClientId) {
-  console.warn(
-    'Google OAuth web client ID is missing. Please ensure it is set in app.json under extra.google'
-  );
-}
+// Google OAuth client ID (public, not a secret). The client secret is kept
+// server-side in the /auth/token API route and never appears in the client.
+const webClientId = GOOGLE_WEB_CLIENT_ID;
 
 // Gmail API scopes
 const SCOPES = [

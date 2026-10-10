@@ -70,10 +70,6 @@
       "router": {},
       "eas": {
         "projectId": "90603317-3766-4f12-8db2-2b5783bc6d72"
-      },
-      "google": {
-        "webClientId": "767000337742-euq0beh1mfet700i6barl2bumskrdh3v.apps.googleusercontent.com",
-        "iosClientId": "767000337742-bfpst90t6dbi14qal5k67la0omjifqgg.apps.googleusercontent.com"
       }
     },
     "owner": "kimptoc",
